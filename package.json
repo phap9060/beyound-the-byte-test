@@ -6,6 +6,8 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev": "pnpm --parallel --filter @nexo/ticket-service --filter @nexo/web dev",
+    "build": "pnpm --filter @nexo/web build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "lint": "eslint .",
@@ -15,8 +17,10 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.4.5",
     "eslint": "10.15.0",
     "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.14.0",
     "prettier": "3.10.1",
     "typescript": "6.0.3",

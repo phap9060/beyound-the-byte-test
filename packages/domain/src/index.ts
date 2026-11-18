@@ -1,4 +1,5 @@
 export * from "./business-time.ts";
+export * from "./conversation.ts";
 export * from "./employee.ts";
 export * from "./handoff.ts";
 export * from "./priority.ts";

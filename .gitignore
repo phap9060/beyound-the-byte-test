@@ -1,0 +1,35 @@
+# Dependências
+node_modules/
+
+# Builds
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# Variáveis de ambiente (chaves NUNCA vão para o git)
+.env
+.env.*
+!.env.example
+
+# Bancos SQLite locais
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Testes
+coverage/
+playwright-report/
+test-results/
+
+# Arquivos de sistema / Windows
+.DS_Store
+*:Zone.Identifier
+
+# Logs
+*.log
+
+# Material do processo seletivo (fica só local, não é publicado)
+docs/desafio.pdf
+docs/prototipo/*.pen

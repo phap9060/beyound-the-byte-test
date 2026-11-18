@@ -54,12 +54,12 @@ describe("instabilidade simulada", () => {
     expect(sleeps).toEqual([200]);
   });
 
-  it("falha solta: 503 com Retry-After de 1 s", async () => {
+  it("falha solta: 503 sem Retry-After (vale tentar de novo logo)", async () => {
     rolls = [0.99, 0.01];
     const res = await appWith({ failureRate: 0.05 }).request(TICKETS);
 
     expect(res.status).toBe(503);
-    expect(res.headers.get("Retry-After")).toBe("1");
+    expect(res.headers.get("Retry-After")).toBeNull();
     expect(await body(res)).toMatchObject({
       error: { code: "service_unavailable", details: { reason: "transient" } },
     });

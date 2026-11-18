@@ -212,6 +212,9 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
     devDependencies:
+      '@nexo/ticket-client':
+        specifier: workspace:*
+        version: link:../../packages/ticket-client
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5

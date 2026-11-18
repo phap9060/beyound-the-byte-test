@@ -81,7 +81,6 @@ export function createChaos(initial: ChaosConfig, deps: ChaosDeps = {}) {
     }
 
     if (random() < config.failureRate) {
-      c.header("Retry-After", "1");
       return errorResponse(
         c,
         serviceError("service_unavailable", "Serviço de chamados temporariamente indisponível", {

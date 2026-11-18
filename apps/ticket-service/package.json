@@ -12,6 +12,7 @@
     "db:reset": "node -e \"require('node:fs').rmSync('data', { recursive: true, force: true })\""
   },
   "devDependencies": {
+    "@nexo/ticket-client": "workspace:*",
     "@types/node": "^22.20.5",
     "drizzle-kit": "0.31.11",
     "tsx": "4.23.15",

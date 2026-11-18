@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { createMiddleware } from "hono/factory";
 
-import { errorResponse, serviceError } from "./errors.ts";
+import { errorResponse, serviceError } from "../errors.ts";
 
 function safeEqual(a: string, b: string): boolean {
   const ba = Buffer.from(a);

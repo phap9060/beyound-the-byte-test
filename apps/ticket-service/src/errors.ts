@@ -13,6 +13,7 @@ const STATUS_BY_CODE = {
   reopen_not_allowed: 409,
   idempotency_key_reused: 409,
   internal_error: 500,
+  service_unavailable: 503,
 } as const satisfies Record<string, ContentfulStatusCode>;
 
 export type ErrorCode = keyof typeof STATUS_BY_CODE;

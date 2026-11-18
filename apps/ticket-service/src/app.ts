@@ -1,19 +1,25 @@
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 
-import { requireToken } from "./auth.ts";
 import type { Database } from "./db/client.ts";
 import { errorResponse, serviceError } from "./errors.ts";
+import { requireToken } from "./middlewares/auth.ts";
+import { CHAOS_OFF, createChaos } from "./middlewares/chaos.ts";
+import type { ChaosConfig, ChaosDeps } from "./middlewares/chaos.ts";
+import { chaosRoutes } from "./routes/chaos.ts";
 import { employeeRoutes } from "./routes/employees.ts";
 import { kbRoutes } from "./routes/kb.ts";
 
 export interface AppOptions {
   token?: string | undefined;
   now?: () => Date;
+  chaos?: ChaosConfig;
+  chaosDeps?: ChaosDeps;
 }
 
 export function createApp(db: Database, options: AppOptions = {}) {
   const now = options.now ?? (() => new Date());
+  const chaos = createChaos(options.chaos ?? CHAOS_OFF, options.chaosDeps);
   const app = new Hono();
 
   app.get("/health", async (c) => {
@@ -23,6 +29,10 @@ export function createApp(db: Database, options: AppOptions = {}) {
 
   if (options.token) app.use("*", requireToken(options.token));
 
+  app.route("/_chaos", chaosRoutes(chaos));
+
+  app.use("/employees/*", chaos.middleware);
+  app.use("/kb/*", chaos.middleware);
   app.route("/employees", employeeRoutes(db, now));
   app.route("/kb", kbRoutes(db));
 

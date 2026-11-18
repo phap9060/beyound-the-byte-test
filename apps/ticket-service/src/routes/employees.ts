@@ -8,7 +8,8 @@ import { z } from "zod";
 import type { Database } from "../db/client.ts";
 import { errorResponse, serviceError } from "../errors.ts";
 import type { ServiceError } from "../errors.ts";
-import { employeeExists, findEmployeeByEmail, getEmployee } from "../services/employees.ts";
+import { requireEmployee } from "../middlewares/require-employee.ts";
+import { findEmployeeByEmail, getEmployee } from "../services/employees.ts";
 import {
   addUpdate,
   createTicket,
@@ -32,20 +33,14 @@ function respond<T>(
 export function employeeRoutes(db: Database, now: () => Date) {
   const app = new Hono();
 
+  app.use("/:employeeId/tickets/*", requireEmployee(db));
+
   app.get("/", validate("query", z.object({ email: z.email() })), async (c) => {
     return respond(c, await findEmployeeByEmail(db, c.req.valid("query").email));
   });
 
   app.get("/:employeeId", async (c) => {
     return respond(c, await getEmployee(db, c.req.param("employeeId")));
-  });
-
-  app.use("/:employeeId/tickets/*", async (c, next) => {
-    if (!(await employeeExists(db, c.req.param("employeeId")))) {
-      return errorResponse(c, serviceError("employee_not_found", "Funcionário não encontrado"));
-    }
-    await next();
-    return undefined;
   });
 
   app.get(

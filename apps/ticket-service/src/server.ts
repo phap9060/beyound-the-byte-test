@@ -11,13 +11,13 @@ if (!env.ok) {
   process.exit(1);
 }
 
-const { PORT, DATABASE_URL, TICKET_SERVICE_TOKEN } = env.value;
-const db = await openDatabase(DATABASE_URL);
+const { port, databaseUrl, token, chaos } = env.value;
+const db = await openDatabase(databaseUrl);
 if (await seedIfEmpty(db)) {
   console.log("[ticket-service] banco vazio: dados de exemplo criados");
 }
 
-const app = createApp(db, { token: TICKET_SERVICE_TOKEN });
-serve({ fetch: app.fetch, port: PORT }, (info) => {
+const app = createApp(db, { token, chaos });
+serve({ fetch: app.fetch, port }, (info) => {
   console.log(`[ticket-service] ouvindo em http://localhost:${info.port}`);
 });

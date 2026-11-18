@@ -76,8 +76,11 @@ describe("addBusinessMinutes", () => {
     expect(addBusinessMinutes(d("2026-11-18T17:00:00Z"), 240)).toEqual(d("2026-11-18T21:00:00Z"));
   });
 
-  it("rejeita minutos negativos", () => {
-    expect(() => addBusinessMinutes(d("2026-11-18T12:00:00Z"), -1)).toThrow(RangeError);
+  it("minutos negativos ou inválidos contam como zero", () => {
+    // sábado 10:00 → segunda 08:00
+    const saturday = d("2026-11-21T13:00:00Z");
+    expect(addBusinessMinutes(saturday, -1)).toEqual(d("2026-11-23T11:00:00Z"));
+    expect(addBusinessMinutes(saturday, Number.NaN)).toEqual(d("2026-11-23T11:00:00Z"));
   });
 });
 

@@ -52,12 +52,9 @@ export function nextBusinessStart(date: Date): Date {
 }
 
 export function addBusinessMinutes(start: Date, minutes: number): Date {
-  if (!Number.isFinite(minutes) || minutes < 0) {
-    throw new RangeError(`minutes deve ser um número ≥ 0 (recebido: ${String(minutes)})`);
-  }
-
   let cursor = nextBusinessStart(start);
-  let remaining = minutes;
+  // NaN ou negativo viram 0: com NaN o laço abaixo nunca terminaria.
+  let remaining = Number.isFinite(minutes) ? Math.max(0, minutes) : 0;
 
   for (;;) {
     const endOfDay = fromLocal(atLocalHour(toLocal(cursor), BUSINESS_END_HOUR));

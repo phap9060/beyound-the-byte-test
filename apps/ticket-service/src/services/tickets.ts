@@ -1,5 +1,6 @@
-import { isOpenStatus, reopenEligibility, TICKET_STATUSES } from "@nexo/domain";
+import { isOpenStatus, ok, reopenEligibility, TICKET_STATUSES } from "@nexo/domain";
 import type {
+  Result,
   Ticket,
   TicketDraft,
   TicketStatus,
@@ -10,12 +11,14 @@ import type {
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Database } from "../db/client.ts";
-import { employees, idempotencyKeys, ticketUpdates, tickets } from "../db/schema.ts";
-import { AppError } from "../errors.ts";
+import { idempotencyKeys, ticketUpdates, tickets } from "../db/schema.ts";
+import { fail } from "../errors.ts";
+import type { ServiceError } from "../errors.ts";
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 type Db = Database | Tx;
 type TicketRow = typeof tickets.$inferSelect;
+type TicketResult = Result<Ticket, ServiceError>;
 
 export type StatusFilter = "open" | "closed" | "all";
 
@@ -42,29 +45,31 @@ function statusesFor(filter: StatusFilter): TicketStatus[] {
   }
 }
 
-export async function assertEmployeeExists(db: Db, employeeId: string): Promise<void> {
-  const found = await db.query.employees.findFirst({
-    columns: { id: true },
-    where: eq(employees.id, employeeId),
-  });
-  if (!found) throw new AppError("employee_not_found", "Funcionário não encontrado");
-}
-
 // Chamado de outra pessoa responde igual a um inexistente: não revela que ele existe.
-async function getOwnedRow(db: Db, employeeId: string, ticketId: string): Promise<TicketRow> {
+async function findOwnedRow(
+  db: Db,
+  employeeId: string,
+  ticketId: string,
+): Promise<Result<TicketRow, ServiceError>> {
   const row = await db.query.tickets.findFirst({
     where: and(eq(tickets.id, ticketId), eq(tickets.requesterId, employeeId)),
   });
-  if (!row) throw new AppError("ticket_not_found", "Chamado não encontrado");
-  return row;
+  return row ? ok(row) : fail("ticket_not_found", "Chamado não encontrado");
 }
 
-function assertOpen(row: TicketRow): void {
-  if (!isOpenStatus(row.status)) {
-    throw new AppError("ticket_closed", "O chamado está encerrado e não pode ser alterado", {
-      status: row.status,
+async function findOwnedOpenRow(
+  db: Db,
+  employeeId: string,
+  ticketId: string,
+): Promise<Result<TicketRow, ServiceError>> {
+  const found = await findOwnedRow(db, employeeId, ticketId);
+  if (!found.ok) return found;
+  if (!isOpenStatus(found.value.status)) {
+    return fail("ticket_closed", "O chamado está encerrado e não pode ser alterado", {
+      status: found.value.status,
     });
   }
+  return found;
 }
 
 export async function listTickets(
@@ -79,14 +84,20 @@ export async function listTickets(
   return rows.map(toSummary);
 }
 
-export async function getTicket(db: Db, employeeId: string, ticketId: string): Promise<Ticket> {
-  const row = await getOwnedRow(db, employeeId, ticketId);
+export async function getTicket(
+  db: Db,
+  employeeId: string,
+  ticketId: string,
+): Promise<TicketResult> {
+  const found = await findOwnedRow(db, employeeId, ticketId);
+  if (!found.ok) return found;
+
   const updates = await db.query.ticketUpdates.findMany({
     columns: { at: true, author: true, message: true },
     where: eq(ticketUpdates.ticketId, ticketId),
     orderBy: asc(ticketUpdates.at),
   });
-  return { ...toSummary(row), updates };
+  return ok({ ...toSummary(found.value), updates });
 }
 
 async function nextTicketId(db: Db, type: TicketType): Promise<string> {
@@ -104,21 +115,16 @@ export async function createTicket(
   draft: TicketDraft,
   idempotencyKey: string,
   now: Date,
-): Promise<{ ticket: Ticket; created: boolean }> {
+): Promise<Result<{ ticket: Ticket; created: boolean }, ServiceError>> {
   return db.transaction(
     async (tx) => {
       const previous = await tx.query.idempotencyKeys.findFirst({
         where: eq(idempotencyKeys.key, idempotencyKey),
       });
       if (previous) {
-        const owner = await tx.query.tickets.findFirst({
-          columns: { requesterId: true },
-          where: eq(tickets.id, previous.ticketId),
-        });
-        if (owner?.requesterId !== employeeId) {
-          throw new AppError("idempotency_key_reused", "Chave de idempotência já usada");
-        }
-        return { ticket: await getTicket(tx, employeeId, previous.ticketId), created: false };
+        const existing = await getTicket(tx, employeeId, previous.ticketId);
+        if (!existing.ok) return fail("idempotency_key_reused", "Chave de idempotência já usada");
+        return ok({ ticket: existing.value, created: false });
       }
 
       const id = await nextTicketId(tx, draft.type);
@@ -140,7 +146,8 @@ export async function createTicket(
         .insert(idempotencyKeys)
         .values({ key: idempotencyKey, ticketId: id, createdAt: now });
 
-      return { ticket: await getTicket(tx, employeeId, id), created: true };
+      const created = await getTicket(tx, employeeId, id);
+      return created.ok ? ok({ ticket: created.value, created: true }) : created;
     },
     { behavior: "immediate" },
   );
@@ -152,10 +159,10 @@ export async function addUpdate(
   ticketId: string,
   update: { author: TicketUpdateAuthor; message: string },
   now: Date,
-): Promise<Ticket> {
+): Promise<TicketResult> {
   return db.transaction(async (tx) => {
-    const row = await getOwnedRow(tx, employeeId, ticketId);
-    assertOpen(row);
+    const found = await findOwnedOpenRow(tx, employeeId, ticketId);
+    if (!found.ok) return found;
 
     await tx.insert(ticketUpdates).values({ ticketId, at: now, ...update });
 
@@ -165,7 +172,9 @@ export async function addUpdate(
         .update(tickets)
         .set({
           lastSupportUpdateAt: now,
-          ...(row.status === "aguardando_analista" ? { status: "em_andamento" as const } : {}),
+          ...(found.value.status === "aguardando_analista"
+            ? { status: "em_andamento" as const }
+            : {}),
         })
         .where(eq(tickets.id, ticketId));
     }
@@ -180,12 +189,14 @@ export async function reopenTicket(
   ticketId: string,
   message: string,
   now: Date,
-): Promise<Ticket> {
+): Promise<TicketResult> {
   return db.transaction(async (tx) => {
-    const row = await getOwnedRow(tx, employeeId, ticketId);
-    const eligibility = reopenEligibility(toSummary(row), now);
+    const found = await findOwnedRow(tx, employeeId, ticketId);
+    if (!found.ok) return found;
+
+    const eligibility = reopenEligibility(toSummary(found.value), now);
     if (!eligibility.eligible) {
-      throw new AppError("reopen_not_allowed", "Este chamado não pode ser reaberto", {
+      return fail("reopen_not_allowed", "Este chamado não pode ser reaberto", {
         reason: eligibility.reason,
       });
     }
@@ -211,10 +222,10 @@ export async function transferTicket(
   ticketId: string,
   transfer: { team: string; summary: string },
   now: Date,
-): Promise<Ticket> {
+): Promise<TicketResult> {
   return db.transaction(async (tx) => {
-    const row = await getOwnedRow(tx, employeeId, ticketId);
-    assertOpen(row);
+    const found = await findOwnedOpenRow(tx, employeeId, ticketId);
+    if (!found.ok) return found;
 
     await tx.update(tickets).set({ assignedTeam: transfer.team }).where(eq(tickets.id, ticketId));
     await tx.insert(ticketUpdates).values({

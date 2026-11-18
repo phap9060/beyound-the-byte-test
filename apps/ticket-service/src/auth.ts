@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { createMiddleware } from "hono/factory";
 
-import { AppError } from "./errors.ts";
+import { errorResponse, serviceError } from "./errors.ts";
 
 function safeEqual(a: string, b: string): boolean {
   const ba = Buffer.from(a);
@@ -15,8 +15,9 @@ export function requireToken(token: string) {
     const header = c.req.header("Authorization") ?? "";
     const provided = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
     if (!safeEqual(provided, token)) {
-      throw new AppError("unauthorized", "Token de acesso ausente ou inválido");
+      return errorResponse(c, serviceError("unauthorized", "Token de acesso ausente ou inválido"));
     }
     await next();
+    return undefined;
   });
 }

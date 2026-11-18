@@ -1,3 +1,5 @@
+import { err, ok } from "@nexo/domain";
+import type { Result } from "@nexo/domain";
 import { z } from "zod";
 
 const EnvSchema = z.object({
@@ -8,10 +10,9 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>;
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+export function loadEnv(source: NodeJS.ProcessEnv = process.env): Result<Env, string> {
   const parsed = EnvSchema.safeParse(source);
-  if (!parsed.success) {
-    throw new Error(`Configuração inválida do ticket-service:\n${z.prettifyError(parsed.error)}`);
-  }
-  return parsed.data;
+  return parsed.success
+    ? ok(parsed.data)
+    : err(`Configuração inválida do ticket-service:\n${z.prettifyError(parsed.error)}`);
 }

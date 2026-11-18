@@ -6,12 +6,18 @@ import { seedIfEmpty } from "./db/seed.ts";
 import { loadEnv } from "./env.ts";
 
 const env = loadEnv();
-const db = await openDatabase(env.DATABASE_URL);
+if (!env.ok) {
+  console.error(env.error);
+  process.exit(1);
+}
+
+const { PORT, DATABASE_URL, TICKET_SERVICE_TOKEN } = env.value;
+const db = await openDatabase(DATABASE_URL);
 if (await seedIfEmpty(db)) {
   console.log("[ticket-service] banco vazio: dados de exemplo criados");
 }
-const app = createApp(db, { token: env.TICKET_SERVICE_TOKEN });
 
-serve({ fetch: app.fetch, port: env.PORT }, (info) => {
+const app = createApp(db, { token: TICKET_SERVICE_TOKEN });
+serve({ fetch: app.fetch, port: PORT }, (info) => {
   console.log(`[ticket-service] ouvindo em http://localhost:${info.port}`);
 });

@@ -3,8 +3,7 @@ import { Hono } from "hono";
 
 import { requireToken } from "./auth.ts";
 import type { Database } from "./db/client.ts";
-import { AppError, errorBody } from "./errors.ts";
-import type { ErrorBody } from "./errors.ts";
+import { errorResponse, serviceError } from "./errors.ts";
 import { employeeRoutes } from "./routes/employees.ts";
 import { kbRoutes } from "./routes/kb.ts";
 
@@ -27,17 +26,12 @@ export function createApp(db: Database, options: AppOptions = {}) {
   app.route("/employees", employeeRoutes(db, now));
   app.route("/kb", kbRoutes(db));
 
-  app.notFound((c) =>
-    c.json<ErrorBody>({ error: { code: "not_found", message: "Rota não encontrada" } }, 404),
-  );
+  app.notFound((c) => errorResponse(c, serviceError("not_found", "Rota não encontrada")));
 
-  app.onError((err, c) => {
-    if (err instanceof AppError) return c.json(errorBody(err), err.status);
-    console.error("[ticket-service] erro inesperado", err);
-    return c.json<ErrorBody>(
-      { error: { code: "internal_error", message: "Erro interno no serviço de chamados" } },
-      500,
-    );
+  // Erros de negócio voltam como Result. Aqui só chegam falhas inesperadas (bug, banco fora).
+  app.onError((error, c) => {
+    console.error("[ticket-service] erro inesperado", error);
+    return errorResponse(c, serviceError("internal_error", "Erro interno no serviço de chamados"));
   });
 
   return app;

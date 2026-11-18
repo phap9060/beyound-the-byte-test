@@ -106,17 +106,28 @@ export const TicketDraftSchema = z.object({
 });
 export type TicketDraft = z.infer<typeof TicketDraftSchema>;
 
-export const TicketSchema = TicketDraftSchema.extend({
+const TicketBaseSchema = TicketDraftSchema.extend({
   id: TicketIdSchema,
   status: TicketStatusSchema,
   requesterId: z.string().min(1),
+  assignedTeam: z.string().min(1).optional(),
   createdAt: z.coerce.date(),
   // O prazo conta a partir da última atualização do suporte (Anexo A).
   lastSupportUpdateAt: z.coerce.date(),
   resolvedAt: z.coerce.date().optional(),
-  updates: z.array(TicketUpdateSchema),
-}).refine((t) => t.id.startsWith(`${t.type}-`), {
-  message: "O prefixo do ID deve corresponder ao tipo do chamado",
-  path: ["id"],
 });
+
+function withIdMatchingType<S extends z.ZodType<{ id: string; type: TicketType }>>(schema: S) {
+  return schema.refine((t) => t.id.startsWith(`${t.type}-`), {
+    message: "O prefixo do ID deve corresponder ao tipo do chamado",
+    path: ["id"],
+  });
+}
+
+export const TicketSummarySchema = withIdMatchingType(TicketBaseSchema);
+export type TicketSummary = z.infer<typeof TicketSummarySchema>;
+
+export const TicketSchema = withIdMatchingType(
+  TicketBaseSchema.extend({ updates: z.array(TicketUpdateSchema) }),
+);
 export type Ticket = z.infer<typeof TicketSchema>;

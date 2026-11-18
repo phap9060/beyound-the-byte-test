@@ -9,21 +9,21 @@ Extraídos das variáveis do arquivo `.pen`.
 
 ### Cores
 
-| Token | Valor | Uso |
-|---|---|---|
-| `paper` | `#FFFFFF` | Fundo das telas |
-| `desk` | `#F6F7F9` | Rail do console, busca, item selecionado |
-| `ink` | `#1B2431` | Texto principal, painel escuro do login |
-| `ink-2` | `#3D4656` | Texto secundário |
-| `ink-3` | `#5B6472` | Ícones, texto terciário |
-| `rule` | `#E6E8EC` | Divisórias |
-| `cta` | `#0062C4` | Badge de contagem no console |
-| `primary` / `-hover` / `-soft` / `-text` | `#0285F7` / `#0071D6` / `#0285F712` / `#0069C7` | Ações, item de navegação ativo, avatar |
-| `success` / `-soft` / `-text` | `#00BD6C` / `#00BD6C14` / `#00804A` | "Assistente online", resolvido |
-| `warning` / `-soft` / `-text` | `#F5A500` / `#F5A50018` / `#946300` | "Aguardando atendente", prioridade média |
-| `danger` / `-soft` / `-text` | `#EE343B` / `#EE343B12` / `#C4161D` | Prazo vencido, "Encerrar atendimento" |
-| `violet` / `-soft` / `-text` | `#A37AFF` / `#A37AFF16` / `#6B3FE0` | Marcação de IA / agent |
-| Fundo da conversa (console) | `#EEF1F5` | Área de mensagens do console |
+| Token                                    | Valor                                           | Uso                                      |
+| ---------------------------------------- | ----------------------------------------------- | ---------------------------------------- |
+| `paper`                                  | `#FFFFFF`                                       | Fundo das telas                          |
+| `desk`                                   | `#F6F7F9`                                       | Rail do console, busca, item selecionado |
+| `ink`                                    | `#1B2431`                                       | Texto principal, painel escuro do login  |
+| `ink-2`                                  | `#3D4656`                                       | Texto secundário                         |
+| `ink-3`                                  | `#5B6472`                                       | Ícones, texto terciário                  |
+| `rule`                                   | `#E6E8EC`                                       | Divisórias                               |
+| `cta`                                    | `#0062C4`                                       | Badge de contagem no console             |
+| `primary` / `-hover` / `-soft` / `-text` | `#0285F7` / `#0071D6` / `#0285F712` / `#0069C7` | Ações, item de navegação ativo, avatar   |
+| `success` / `-soft` / `-text`            | `#00BD6C` / `#00BD6C14` / `#00804A`             | "Assistente online", resolvido           |
+| `warning` / `-soft` / `-text`            | `#F5A500` / `#F5A50018` / `#946300`             | "Aguardando atendente", prioridade média |
+| `danger` / `-soft` / `-text`             | `#EE343B` / `#EE343B12` / `#C4161D`             | Prazo vencido, "Encerrar atendimento"    |
+| `violet` / `-soft` / `-text`             | `#A37AFF` / `#A37AFF16` / `#6B3FE0`             | Marcação de IA / agent                   |
+| Fundo da conversa (console)              | `#EEF1F5`                                       | Área de mensagens do console             |
 
 Também existem tokens neutros alternativos (`bg`, `surface`, `card`, `fg`, `muted`, `subtle`, `border`) que não aparecem nas telas principais.
 
@@ -46,36 +46,36 @@ Todas são desktop, 1440×900.
 
 Duas colunas:
 
-- **Showcase** (800 px, fundo `ink`): marca "Nexo Assist · Service desk de TI da Nexo", headline *"Seu problema de TI, resolvido em uma conversa."* e um preview de conversa: o usuário diz "Meu notebook não conecta na VPN. Erro 809."; acima da resposta aparecem os chips *consultou seus chamados · criou um chamado*; depois a resposta e o card `INC-20517 · Rede e VPN · Alta · em até 4 h`. Embaixo, três métricas: **8 s** primeira resposta, **72%** resolvidos sem fila, **6** analistas online.
-- **Sign In:** no topo, "Problema para entrar? Ligue no ramal 4000". No centro, o formulário (380 px) "Entrar", com os campos *E-mail corporativo* e *Senha*, os links "Esqueci minha senha" e "Manter conectado neste computador" e o botão **Entrar**. No rodapé, "© 2026 Nexo · Privacidade e uso de dados".
+- **Showcase** (800 px, fundo `ink`): marca "Nexo Assist · Service desk de TI da Nexo", headline _"Seu problema de TI, resolvido em uma conversa."_ e um preview de conversa: o usuário diz "Meu notebook não conecta na VPN. Erro 809."; acima da resposta aparecem os chips _consultou seus chamados · criou um chamado_; depois a resposta e o card `INC-20517 · Rede e VPN · Alta · em até 4 h`. Embaixo, três métricas: **8 s** primeira resposta, **72%** resolvidos sem fila, **6** analistas online.
+- **Sign In:** no topo, "Problema para entrar? Ligue no ramal 4000". No centro, o formulário (380 px) "Entrar", com os campos _E-mail corporativo_ e _Senha_, os links "Esqueci minha senha" e "Manter conectado neste computador" e o botão **Entrar**. No rodapé, "© 2026 Nexo · Privacidade e uso de dados".
 
 ### Layout comum do funcionário (telas 2, 3 e 6)
 
-- **Sidebar** (232 px): logo; navegação *Atendimento* / *Meu perfil* (o item ativo usa `primary-soft`, raio 8); no rodapé, o usuário (avatar com iniciais, nome e e-mail) e o botão **Sair**.
+- **Sidebar** (232 px): logo; navegação _Atendimento_ / _Meu perfil_ (o item ativo usa `primary-soft`, raio 8); no rodapé, o usuário (avatar com iniciais, nome e e-mail) e o botão **Sair**.
 - **Main:** top bar de 64 px com o breadcrumb "Service desk de TI › Atendimento" e a pílula **"Assistente online"** (`success-soft`). Abaixo, uma coluna única de chat.
 - **Composer:** "Escreva para o Nexo…", botão **Enviar** e o contador **"N/30 mensagens nesta sessão"**.
 
 ### 2. Chat: novo chamado
 
 1. O usuário escreve: "Meu notebook não conecta na VPN desde ontem. Aparece o erro 809."
-2. **Chips de ação** acima da resposta: *consultou seus chamados* · *buscou na central de ajuda*.
+2. **Chips de ação** acima da resposta: _consultou seus chamados_ · _buscou na central de ajuda_.
 3. Resposta: o agent informa que não há chamado aberto sobre VPN e que o artigo vale só para Windows 10, mas o dele é Windows 11. Por isso, vai abrir um chamado.
 4. **Pergunta com opções rápidas numeradas:** "Quem está sendo afetado?", com as opções 1 Só eu · 2 Minha equipe · 3 Toda a empresa · 4 Não sei.
 5. O usuário responde: "Só eu. Tenho reunião com um cliente às 14h…"
-6. Chips: *classificou a prioridade* · *consultou o SLA* · *montou o rascunho*. Depois vem a justificativa: "Coloquei prioridade alta por causa da reunião…"
-7. **Card de rascunho:** "Novo chamado · Rascunho D-381 · *Aguardando confirmação*", com título, descrição, **Categoria** Rede e VPN, **Prioridade** Alta "· resposta até 13:43" (o prazo já calculado), **Afetados** Somente você e os botões **Confirmar** (atalho ⌘↵) · Editar · Cancelar.
+6. Chips: _classificou a prioridade_ · _consultou o SLA_ · _montou o rascunho_. Depois vem a justificativa: "Coloquei prioridade alta por causa da reunião…"
+7. **Card de rascunho:** "Novo chamado · Rascunho D-381 · _Aguardando confirmação_", com título, descrição, **Categoria** Rede e VPN, **Prioridade** Alta "· resposta até 13:43" (o prazo já calculado), **Afetados** Somente você e os botões **Confirmar** (atalho ⌘↵) · Editar · Cancelar.
 8. Rodapé: "18/30 mensagens nesta sessão".
 
 ### 3. Chat: consulta e transferência
 
 1. O usuário pergunta: "Qual o status do meu chamado?"
-2. Chip *consultou seus chamados*, e o agent pergunta: "Você tem 3 chamados abertos. Sobre qual deles quer saber?"
+2. Chip _consultou seus chamados_, e o agent pergunta: "Você tem 3 chamados abertos. Sobre qual deles quer saber?"
 3. **Lista de seleção** de chamados, cada um com ID, título, status (badge) e data:
    - `INC-20311` Notebook lento após atualização · Aguardando analista · 16 out
    - `INC-20298` Acesso à pasta Financeiro no SharePoint · Em andamento · 14 out
    - `REQ-10442` Segundo monitor para home office · Aprovado · 09 out
 4. A escolha aparece como mensagem do usuário: "INC-20311 · Notebook lento após atualização".
-5. Chips *consultou o INC-20311* · *calculou o prazo*, e o **card de chamado** com título, descrição, Categoria "Hardware › Notebook" (com subcategoria), Prioridade Média, Aberto em, Última atualização "há 5 dias **· prazo vencido**" (em vermelho).
+5. Chips _consultou o INC-20311_ · _calculou o prazo_, e o **card de chamado** com título, descrição, Categoria "Hardware › Notebook" (com subcategoria), Prioridade Média, Aberto em, Última atualização "há 5 dias **· prazo vencido**" (em vermelho).
 6. O agent explica o atraso (5 dias contra um prazo de 3 dias úteis) e oferece um analista, com as ações rápidas **Falar com um analista** · Adicionar informação · Não, obrigado.
 
 ### 6. Meu perfil (extra; não citada no PDF)
@@ -86,13 +86,13 @@ Nome, e-mail corporativo ("Gerenciado pela TI"), senha ("Alterada há 42 dias") 
 
 Quatro colunas:
 
-- **Rail** (64 px, `desk`): logo, ícone *Conversas* com badge de contagem (`cta`) e avatar do analista com indicador online.
+- **Rail** (64 px, `desk`): logo, ícone _Conversas_ com badge de contagem (`cta`) e avatar do analista com indicador online.
 - **Lista de conversas** (380 px): título "Conversas" + status "Disponível"; busca "Pesquisar conversa ou chamado"; filtros **Todas · Para você (3) · Com o agent (9) · Minhas (1)**. Cada item mostra avatar, nome, hora, prévia da última mensagem, contador de não lidas e uma **linha de status**:
-  - *Transferida · INC-20311*
-  - *Transferida · contato em 25 min*
+  - _Transferida · INC-20311_
+  - _Transferida · contato em 25 min_
   - **Agent pediu ajuda · confiança 41%** (o agent sem segurança)
-  - *Agent atendendo* (com "digitando…")
-  - *Resolvida pelo agent*
+  - _Agent atendendo_ (com "digitando…")
+  - _Resolvida pelo agent_
 - **Conversa** (flexível, fundo `#EEF1F5`): header com avatar, nome, "online · Financeiro · INC-20311" e uma pílula de modo. As mensagens têm três autores: cliente, **Nexo Assist** (com marcação "IA") e analista humano. Há linhas de **sistema** ("Transferida para Suporte N2 · 10:05").
 - **Chamados do funcionário** (340 px): "Chamados da Ana · 3 abertos · 2 encerrados"; a seção **Desta conversa** (o chamado ligado, com status e o evento mais recente); a seção **Outros chamados** (abertos e resolvidos com data); e o botão "Ver todos os chamados".
 
@@ -114,14 +114,15 @@ Quatro colunas:
 
 O protótipo só tem telas desktop de 1440×900. A implementação vai ser **responsiva**, com os pontos de quebra padrão do Tailwind (`md` = 768 px, `lg` = 1024 px, `xl` = 1280 px) e **mobile first**: o estilo base é o do celular, e as colunas vão aparecendo conforme a tela cresce. No celular, a margem lateral é de 16 px e não pode haver rolagem horizontal.
 
-| Tela | Celular (< 768) | Tablet (768–1279) | Desktop (≥ 1280) |
-|---|---|---|---|
-| **Login** | Só o formulário. O showcase vira uma faixa curta acima, com a marca e a headline, sem o preview e sem as métricas | Só o formulário, com o showcase reduzido no topo | Duas colunas, como no protótipo |
-| **Chat do funcionário** | A sidebar vira um menu (ícone ☰ abrindo um *drawer*). O chat ocupa a tela inteira e o composer fica fixo no rodapé. Os cards e o rascunho ocupam 100% da largura | Sidebar recolhida, só com ícones (64 px) | Sidebar de 232 px |
-| **Detalhe das decisões** | Abre como *bottom sheet* | Abre como *drawer* lateral | Painel lateral ou expansão inline |
-| **Console do analista** | Navegação em pilha: lista → conversa → chamados (botão "voltar"); os chamados abrem como *sheet* | Lista + conversa; o painel de chamados abre como *drawer* | Quatro colunas, como no protótipo |
+| Tela                     | Celular (< 768)                                                                                                                                                   | Tablet (768–1279)                                         | Desktop (≥ 1280)                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------- |
+| **Login**                | Só o formulário. O showcase vira uma faixa curta acima, com a marca e a headline, sem o preview e sem as métricas                                                 | Só o formulário, com o showcase reduzido no topo          | Duas colunas, como no protótipo   |
+| **Chat do funcionário**  | A sidebar vira um menu (ícone ☰ abrindo um _drawer_). O chat ocupa a tela inteira e o composer fica fixo no rodapé. Os cards e o rascunho ocupam 100% da largura | Sidebar recolhida, só com ícones (64 px)                  | Sidebar de 232 px                 |
+| **Detalhe das decisões** | Abre como _bottom sheet_                                                                                                                                          | Abre como _drawer_ lateral                                | Painel lateral ou expansão inline |
+| **Console do analista**  | Navegação em pilha: lista → conversa → chamados (botão "voltar"); os chamados abrem como _sheet_                                                                  | Lista + conversa; o painel de chamados abre como _drawer_ | Quatro colunas, como no protótipo |
 
 Outras regras:
+
 - **Alvos de toque** de no mínimo 44 px no celular (opções rápidas, botões do rascunho).
 - **Opções rápidas** quebram linha (`flex-wrap`); nunca rolam na horizontal.
 - O atalho **⌘↵ / Ctrl+Enter** do rascunho só aparece onde há teclado físico, ou seja, a partir de `lg`.

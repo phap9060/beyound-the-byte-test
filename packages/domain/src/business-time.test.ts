@@ -7,10 +7,7 @@ import {
   nextBusinessStart,
 } from "./business-time.ts";
 
-/**
- * Datas em UTC; o comentário mostra o horário de Brasília (UTC−3).
- * Calendário de referência: 16/11/2026 é segunda-feira.
- */
+// Datas em UTC; os comentários mostram o horário de Brasília. 16/11/2026 é segunda-feira.
 const d = (iso: string) => new Date(iso);
 
 describe("isBusinessTime", () => {

@@ -1,6 +1,5 @@
 import type { Ticket } from "./ticket.ts";
 
-/** Chamados resolvidos há até 7 dias podem ser reabertos (Anexo A). */
 export const REOPEN_WINDOW_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 

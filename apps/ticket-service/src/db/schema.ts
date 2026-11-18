@@ -9,15 +9,6 @@ import {
 } from "@nexo/domain";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-/**
- * Tabelas do "sistema legado" de chamados.
- *
- * Os valores permitidos em cada coluna de enum vêm do pacote domain
- * (`CATEGORIES` etc.), então o banco e as regras nunca divergem.
- * Datas são guardadas como inteiro (milissegundos desde 1970), e o Drizzle
- * converte para `Date` na leitura.
- */
-
 export const employees = sqliteTable("employees", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -30,7 +21,7 @@ export const employees = sqliteTable("employees", {
 export const tickets = sqliteTable(
   "tickets",
   {
-    id: text("id").primaryKey(), // INC-20311, REQ-10442
+    id: text("id").primaryKey(),
     type: text("type", { enum: TICKET_TYPES }).notNull(),
     title: text("title").notNull(),
     description: text("description").notNull(),
@@ -42,13 +33,11 @@ export const tickets = sqliteTable(
     requesterId: text("requester_id")
       .notNull()
       .references(() => employees.id),
-    /** Equipe para a qual o chamado foi transferido (ex.: "Suporte N2"). */
     assignedTeam: text("assigned_team"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     lastSupportUpdateAt: integer("last_support_update_at", { mode: "timestamp_ms" }).notNull(),
     resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
   },
-  // Toda consulta de chamados é "do funcionário X": este índice deixa isso rápido.
   (t) => [index("tickets_requester_idx").on(t.requesterId)],
 );
 
@@ -66,21 +55,15 @@ export const ticketUpdates = sqliteTable(
   (t) => [index("ticket_updates_ticket_idx").on(t.ticketId)],
 );
 
-/** Artigos da central de ajuda. */
 export const kbArticles = sqliteTable("kb_articles", {
-  id: text("id").primaryKey(), // KB-001
+  id: text("id").primaryKey(),
   title: text("title").notNull(),
   body: text("body").notNull(),
   category: text("category", { enum: CATEGORIES }).notNull(),
-  /** Palavras-chave separadas por vírgula, usadas na busca. */
+  // separadas por vírgula
   keywords: text("keywords").notNull(),
 });
 
-/**
- * Chaves de idempotência da criação de chamado. Se o cliente repetir o mesmo
- * POST (por exemplo, num retry depois de um timeout), devolvemos o chamado
- * que já foi criado em vez de criar outro.
- */
 export const idempotencyKeys = sqliteTable("idempotency_keys", {
   key: text("key").primaryKey(),
   ticketId: text("ticket_id")

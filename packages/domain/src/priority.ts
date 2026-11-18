@@ -1,19 +1,10 @@
 import type { Affected, Priority, TicketType } from "./ticket.ts";
 
-/**
- * Classificação de prioridade (Anexo A): combina o impacto (quantas pessoas
- * são afetadas) com a urgência (se algo parou ou se há compromisso em risco).
- *
- * O LLM não escolhe a prioridade. Ele extrai os fatos da conversa (quem é
- * afetado, se impede o trabalho, se há compromisso hoje) e esta função decide.
- * Isso torna a decisão previsível, testável e explicável.
- */
+// O LLM só extrai os fatos da conversa; a prioridade é decidida aqui (Anexo A).
 export interface PriorityInput {
   type: TicketType;
   affected: Affected;
-  /** Algo parou: a pessoa (ou o grupo) não consegue trabalhar. */
   blocksWork: boolean;
-  /** Há um compromisso no mesmo dia que depende disso (reunião, entrega...). */
   sameDayDeadline: boolean;
 }
 
@@ -27,7 +18,6 @@ export type PriorityRule =
 export interface PriorityDecision {
   priority: Priority;
   rule: PriorityRule;
-  /** Justificativa em linguagem natural, exibida no detalhe da decisão. */
   reason: string;
 }
 

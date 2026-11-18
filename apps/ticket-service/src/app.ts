@@ -3,11 +3,6 @@ import { Hono } from "hono";
 
 import type { Database } from "./db/client.ts";
 
-/**
- * Monta as rotas do serviço. Recebe o banco como parâmetro (injeção de
- * dependência): o servidor real passa o arquivo SQLite, e os testes passam um
- * banco em memória.
- */
 export function createApp(db: Database) {
   const app = new Hono();
 

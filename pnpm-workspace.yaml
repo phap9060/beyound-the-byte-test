@@ -2,7 +2,6 @@ packages:
   - "apps/*"
   - "packages/*"
 
-# Scripts de instalação bloqueados por padrão (segurança). O esbuild funciona
-# sem o dele, porque o binário vem num pacote opcional por plataforma.
+# O esbuild funciona sem o script de instalação (o binário vem num pacote opcional).
 allowBuilds:
   esbuild: false

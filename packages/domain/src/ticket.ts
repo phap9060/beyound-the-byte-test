@@ -1,16 +1,5 @@
 import { z } from "zod";
 
-/**
- * Tipos, categorias, prioridades e status de chamado (Anexo A).
- *
- * Cada conjunto é definido uma única vez como uma lista `as const`
- * (ex.: CATEGORIES). Dela saem o schema Zod (validação em tempo de execução),
- * o tipo TypeScript (`z.infer`) e as colunas do banco (Drizzle). Assim nada
- * diverge.
- */
-
-// ── Tipo ────────────────────────────────────────────────────────────────
-// INC: algo parou ou não funciona. REQ: pedido de acesso, equipamento ou software.
 export const TICKET_TYPES = ["INC", "REQ"] as const;
 export const TicketTypeSchema = z.enum(TICKET_TYPES);
 export type TicketType = z.infer<typeof TicketTypeSchema>;
@@ -20,7 +9,6 @@ export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
   REQ: "Requisição",
 };
 
-// ── Categoria ───────────────────────────────────────────────────────────
 export const CATEGORIES = [
   "acesso",
   "rede_vpn",
@@ -41,7 +29,6 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   outros: "Outros",
 };
 
-// ── Prioridade ──────────────────────────────────────────────────────────
 export const PRIORITIES = ["critica", "alta", "media", "baixa"] as const;
 export const PrioritySchema = z.enum(PRIORITIES);
 export type Priority = z.infer<typeof PrioritySchema>;
@@ -53,9 +40,7 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
   baixa: "Baixa",
 };
 
-// ── Quem é afetado ──────────────────────────────────────────────────────
-// Corresponde às opções rápidas do protótipo ("Só eu", "Minha equipe", "Toda a empresa").
-// "Não sei" não é um valor válido: o agent deve esclarecer antes de montar o rascunho.
+// "Não sei" fica de fora de propósito: o agent precisa esclarecer antes do rascunho.
 export const AFFECTED_SCOPES = ["somente_eu", "equipe", "empresa"] as const;
 export const AffectedSchema = z.enum(AFFECTED_SCOPES);
 export type Affected = z.infer<typeof AffectedSchema>;
@@ -66,7 +51,6 @@ export const AFFECTED_LABEL: Record<Affected, string> = {
   empresa: "Toda a empresa",
 };
 
-// ── Status ──────────────────────────────────────────────────────────────
 export const TICKET_STATUSES = [
   "aguardando_analista",
   "em_andamento",
@@ -85,7 +69,6 @@ export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
   cancelado: "Cancelado",
 };
 
-/** Status em que o chamado ainda está "vivo": conta prazo e pode ser atualizado. */
 export function isOpenStatus(status: TicketStatus): boolean {
   switch (status) {
     case "aguardando_analista":
@@ -98,12 +81,9 @@ export function isOpenStatus(status: TicketStatus): boolean {
   }
 }
 
-// ── Identificador ───────────────────────────────────────────────────────
-// Ex.: INC-20311, REQ-10442. O prefixo precisa bater com o tipo do chamado.
 export const TicketIdSchema = z.string().regex(/^(INC|REQ)-\d{4,}$/, "ID de chamado inválido");
 export type TicketId = z.infer<typeof TicketIdSchema>;
 
-// ── Atualização (comentário) num chamado ────────────────────────────────
 export const TICKET_UPDATE_AUTHORS = ["funcionario", "agent", "analista"] as const;
 export const TicketUpdateAuthorSchema = z.enum(TICKET_UPDATE_AUTHORS);
 export type TicketUpdateAuthor = z.infer<typeof TicketUpdateAuthorSchema>;
@@ -115,10 +95,6 @@ export const TicketUpdateSchema = z.object({
 });
 export type TicketUpdate = z.infer<typeof TicketUpdateSchema>;
 
-// ── Rascunho ────────────────────────────────────────────────────────────
-// Tudo que o Anexo A exige para abrir um chamado: título, descrição, tipo,
-// categoria, prioridade e quem é afetado. É o que o agent mostra para
-// confirmação antes de criar.
 export const TicketDraftSchema = z.object({
   type: TicketTypeSchema,
   title: z.string().trim().min(5, "Título muito curto").max(120),
@@ -130,15 +106,13 @@ export const TicketDraftSchema = z.object({
 });
 export type TicketDraft = z.infer<typeof TicketDraftSchema>;
 
-// ── Chamado ─────────────────────────────────────────────────────────────
 export const TicketSchema = TicketDraftSchema.extend({
   id: TicketIdSchema,
   status: TicketStatusSchema,
   requesterId: z.string().min(1),
   createdAt: z.coerce.date(),
-  /** Última resposta/atualização do service desk. É daqui que o prazo conta (Anexo A). */
+  // O prazo conta a partir da última atualização do suporte (Anexo A).
   lastSupportUpdateAt: z.coerce.date(),
-  /** Preenchido quando o status vira "resolvido". Usado na regra de reabertura (7 dias). */
   resolvedAt: z.coerce.date().optional(),
   updates: z.array(TicketUpdateSchema),
 }).refine((t) => t.id.startsWith(`${t.type}-`), {

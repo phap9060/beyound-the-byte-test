@@ -10,7 +10,7 @@ const db = await openDatabase(env.DATABASE_URL);
 if (await seedIfEmpty(db)) {
   console.log("[ticket-service] banco vazio: dados de exemplo criados");
 }
-const app = createApp(db);
+const app = createApp(db, { token: env.TICKET_SERVICE_TOKEN });
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   console.log(`[ticket-service] ouvindo em http://localhost:${info.port}`);

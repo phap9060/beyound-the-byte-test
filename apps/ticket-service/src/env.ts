@@ -3,6 +3,7 @@ import { z } from "zod";
 const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4001),
   DATABASE_URL: z.string().min(1).default("file:./data/tickets.db"),
+  TICKET_SERVICE_TOKEN: z.string().min(16).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

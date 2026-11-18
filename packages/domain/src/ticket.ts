@@ -3,15 +3,16 @@ import { z } from "zod";
 /**
  * Tipos, categorias, prioridades e status de chamado (Anexo A).
  *
- * Cada conjunto é definido uma única vez como schema Zod, e o tipo
- * TypeScript é derivado dele com `z.infer`. Assim a validação em tempo de
- * execução (API, tools do agent) e a checagem em tempo de compilação nunca
- * divergem.
+ * Cada conjunto é definido uma única vez como uma lista `as const`
+ * (ex.: CATEGORIES). Dela saem o schema Zod (validação em tempo de execução),
+ * o tipo TypeScript (`z.infer`) e as colunas do banco (Drizzle). Assim nada
+ * diverge.
  */
 
 // ── Tipo ────────────────────────────────────────────────────────────────
 // INC: algo parou ou não funciona. REQ: pedido de acesso, equipamento ou software.
-export const TicketTypeSchema = z.enum(["INC", "REQ"]);
+export const TICKET_TYPES = ["INC", "REQ"] as const;
+export const TicketTypeSchema = z.enum(TICKET_TYPES);
 export type TicketType = z.infer<typeof TicketTypeSchema>;
 
 export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
@@ -20,14 +21,15 @@ export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
 };
 
 // ── Categoria ───────────────────────────────────────────────────────────
-export const CategorySchema = z.enum([
+export const CATEGORIES = [
   "acesso",
   "rede_vpn",
   "hardware",
   "software",
   "email",
   "outros",
-]);
+] as const;
+export const CategorySchema = z.enum(CATEGORIES);
 export type Category = z.infer<typeof CategorySchema>;
 
 export const CATEGORY_LABEL: Record<Category, string> = {
@@ -40,7 +42,8 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 };
 
 // ── Prioridade ──────────────────────────────────────────────────────────
-export const PrioritySchema = z.enum(["critica", "alta", "media", "baixa"]);
+export const PRIORITIES = ["critica", "alta", "media", "baixa"] as const;
+export const PrioritySchema = z.enum(PRIORITIES);
 export type Priority = z.infer<typeof PrioritySchema>;
 
 export const PRIORITY_LABEL: Record<Priority, string> = {
@@ -53,7 +56,8 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 // ── Quem é afetado ──────────────────────────────────────────────────────
 // Corresponde às opções rápidas do protótipo ("Só eu", "Minha equipe", "Toda a empresa").
 // "Não sei" não é um valor válido: o agent deve esclarecer antes de montar o rascunho.
-export const AffectedSchema = z.enum(["somente_eu", "equipe", "empresa"]);
+export const AFFECTED_SCOPES = ["somente_eu", "equipe", "empresa"] as const;
+export const AffectedSchema = z.enum(AFFECTED_SCOPES);
 export type Affected = z.infer<typeof AffectedSchema>;
 
 export const AFFECTED_LABEL: Record<Affected, string> = {
@@ -63,13 +67,14 @@ export const AFFECTED_LABEL: Record<Affected, string> = {
 };
 
 // ── Status ──────────────────────────────────────────────────────────────
-export const TicketStatusSchema = z.enum([
+export const TICKET_STATUSES = [
   "aguardando_analista",
   "em_andamento",
   "aprovado",
   "resolvido",
   "cancelado",
-]);
+] as const;
+export const TicketStatusSchema = z.enum(TICKET_STATUSES);
 export type TicketStatus = z.infer<typeof TicketStatusSchema>;
 
 export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
@@ -99,7 +104,8 @@ export const TicketIdSchema = z.string().regex(/^(INC|REQ)-\d{4,}$/, "ID de cham
 export type TicketId = z.infer<typeof TicketIdSchema>;
 
 // ── Atualização (comentário) num chamado ────────────────────────────────
-export const TicketUpdateAuthorSchema = z.enum(["funcionario", "agent", "analista"]);
+export const TICKET_UPDATE_AUTHORS = ["funcionario", "agent", "analista"] as const;
+export const TicketUpdateAuthorSchema = z.enum(TICKET_UPDATE_AUTHORS);
 export type TicketUpdateAuthor = z.infer<typeof TicketUpdateAuthorSchema>;
 
 export const TicketUpdateSchema = z.object({

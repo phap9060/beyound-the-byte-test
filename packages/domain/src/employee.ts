@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const EmployeeRoleSchema = z.enum(["funcionario", "analista"]);
+export const EMPLOYEE_ROLES = ["funcionario", "analista"] as const;
+export const EmployeeRoleSchema = z.enum(EMPLOYEE_ROLES);
 export type EmployeeRole = z.infer<typeof EmployeeRoleSchema>;
 
 export const EmployeeSchema = z.object({

@@ -40,15 +40,13 @@ export function employeeRoutes(db: Database, now: () => Date) {
     return respond(c, await getEmployee(db, c.req.param("employeeId")));
   });
 
-  for (const path of ["/:employeeId/tickets", "/:employeeId/tickets/*"]) {
-    app.use(path, async (c, next) => {
-      if (!(await employeeExists(db, c.req.param("employeeId") ?? ""))) {
-        return errorResponse(c, serviceError("employee_not_found", "Funcionário não encontrado"));
-      }
-      await next();
-      return undefined;
-    });
-  }
+  app.use("/:employeeId/tickets/*", async (c, next) => {
+    if (!(await employeeExists(db, c.req.param("employeeId")))) {
+      return errorResponse(c, serviceError("employee_not_found", "Funcionário não encontrado"));
+    }
+    await next();
+    return undefined;
+  });
 
   app.get(
     "/:employeeId/tickets",

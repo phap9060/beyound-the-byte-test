@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "pnpm --parallel --filter @nexo/ticket-service --filter @nexo/web dev",
     "build": "pnpm --filter @nexo/web build",
+    "db:reset": "pnpm --filter @nexo/ticket-service --filter @nexo/web db:reset",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "lint": "eslint .",

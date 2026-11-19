@@ -1,11 +1,21 @@
 import "server-only";
 
-import { err, ok, transitionConversation } from "@nexo/domain";
+import {
+  MAX_MESSAGES_PER_SESSION,
+  MessagePartSchema,
+  err,
+  ok,
+  transitionConversation,
+} from "@nexo/domain";
 import type { ConversationAction, ConversationStatus, Result } from "@nexo/domain";
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt } from "drizzle-orm";
+import { z } from "zod";
+
+import type { ChatMessage, ConversationEvent, ConversationState } from "@/lib/chat-types";
 
 import { getDb } from "./db/client";
 import { conversations, messages } from "./db/schema";
+import { publish } from "./events";
 import type { SessionUser } from "./session";
 
 export type ConversationRow = typeof conversations.$inferSelect;
@@ -15,6 +25,44 @@ export type ConsoleFilter = "todas" | "para-voce" | "agent" | "minhas";
 
 export interface ConsoleItem extends ConversationRow {
   lastMessage: Pick<MessageRow, "author" | "authorId" | "text"> | undefined;
+}
+
+const PartsSchema = z.array(MessagePartSchema);
+
+// As partes vêm de JSON no banco: o que não passar no contrato é descartado em vez de quebrar a tela.
+export function toChatMessage(row: MessageRow): ChatMessage {
+  const parts = PartsSchema.safeParse(row.parts ?? []);
+  return {
+    id: row.id,
+    author: row.author,
+    authorName: row.authorName,
+    authorTeam: row.authorTeam,
+    text: row.text,
+    parts: parts.success ? parts.data : [],
+    steps: row.steps ?? [],
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export function toState(c: ConversationRow): ConversationState {
+  return {
+    status: c.status,
+    analystName: c.assignedAnalystName,
+    waitingUntil: c.waitingUntil?.toISOString() ?? null,
+  };
+}
+
+function publishAll(conversationId: string, events: ConversationEvent[]): void {
+  for (const event of events) publish(conversationId, event);
+}
+
+export async function messagesAfter(conversationId: string, afterId: number) {
+  const db = await getDb();
+  const rows = await db.query.messages.findMany({
+    where: and(eq(messages.conversationId, conversationId), gt(messages.id, afterId)),
+    orderBy: asc(messages.id),
+  });
+  return rows.map(toChatMessage);
 }
 
 export async function countSessionMessages(sessionId: string): Promise<number> {
@@ -86,6 +134,11 @@ export async function listConsole(analystId: string, filter: ConsoleFilter, quer
   return { items, counts };
 }
 
+export async function getConversationRow(id: string) {
+  const db = await getDb();
+  return db.query.conversations.findFirst({ where: eq(conversations.id, id) });
+}
+
 export async function getConversation(id: string) {
   const db = await getDb();
   const conversation = await db.query.conversations.findFirst({ where: eq(conversations.id, id) });
@@ -99,6 +152,7 @@ export async function getConversation(id: string) {
 
 export type ConversationError =
   | { kind: "not_found" }
+  | { kind: "limit_reached" }
   | { kind: "not_allowed"; status: ConversationStatus }
   | { kind: "not_yours"; assignedTo: string | null };
 
@@ -116,8 +170,9 @@ export async function applyAnalystAction(
   now = new Date(),
 ): Promise<Result<ConversationStatus, ConversationError>> {
   const db = await getDb();
-  return db.transaction(
-    async (tx) => {
+  const events: ConversationEvent[] = [];
+  const result = await db.transaction(
+    async (tx): Promise<Result<ConversationStatus, ConversationError>> => {
       const current = await tx.query.conversations.findFirst({ where: eq(conversations.id, id) });
       if (!current) return err({ kind: "not_found" });
 
@@ -134,7 +189,7 @@ export async function applyAnalystAction(
           ? { assignedAnalystId: analyst.id, assignedAnalystName: analyst.name, assignedAt: now }
           : { assignedAnalystId: null, assignedAnalystName: null, assignedAt: null };
 
-      await tx
+      const [updated] = await tx
         .update(conversations)
         .set({
           status: next.value,
@@ -144,23 +199,31 @@ export async function applyAnalystAction(
           updatedAt: now,
           lastMessageAt: now,
         })
-        .where(and(eq(conversations.id, id), eq(conversations.status, current.status)));
+        .where(and(eq(conversations.id, id), eq(conversations.status, current.status)))
+        .returning();
+      if (updated) events.push({ type: "state", state: toState(updated) });
 
       const text = SYSTEM_TEXT[action]?.(analyst);
       if (text) {
-        await tx.insert(messages).values({
-          conversationId: id,
-          author: "system",
-          authorId: analyst.id,
-          authorName: analyst.name,
-          text,
-          createdAt: now,
-        });
+        const [inserted] = await tx
+          .insert(messages)
+          .values({
+            conversationId: id,
+            author: "system",
+            authorId: analyst.id,
+            authorName: analyst.name,
+            text,
+            createdAt: now,
+          })
+          .returning();
+        if (inserted) events.push({ type: "message", message: toChatMessage(inserted) });
       }
       return ok(next.value);
     },
     { behavior: "immediate" },
   );
+  if (result.ok) publishAll(id, events);
+  return result;
 }
 
 export async function sendAnalystMessage(
@@ -170,8 +233,9 @@ export async function sendAnalystMessage(
   now = new Date(),
 ): Promise<Result<void, ConversationError>> {
   const db = await getDb();
-  return db.transaction(
-    async (tx) => {
+  const events: ConversationEvent[] = [];
+  const result = await db.transaction(
+    async (tx): Promise<Result<void, ConversationError>> => {
       const current = await tx.query.conversations.findFirst({ where: eq(conversations.id, id) });
       if (!current) return err({ kind: "not_found" });
       if (current.status !== "human") return err({ kind: "not_allowed", status: current.status });
@@ -179,15 +243,19 @@ export async function sendAnalystMessage(
         return err({ kind: "not_yours", assignedTo: current.assignedAnalystName });
       }
 
-      await tx.insert(messages).values({
-        conversationId: id,
-        author: "analyst",
-        authorId: analyst.id,
-        authorName: analyst.name,
-        authorTeam: analyst.supportTeam ?? null,
-        text,
-        createdAt: now,
-      });
+      const [inserted] = await tx
+        .insert(messages)
+        .values({
+          conversationId: id,
+          author: "analyst",
+          authorId: analyst.id,
+          authorName: analyst.name,
+          authorTeam: analyst.supportTeam ?? null,
+          text,
+          createdAt: now,
+        })
+        .returning();
+      if (inserted) events.push({ type: "message", message: toChatMessage(inserted) });
       await tx
         .update(conversations)
         .set({ updatedAt: now, lastMessageAt: now })
@@ -196,4 +264,100 @@ export async function sendAnalystMessage(
     },
     { behavior: "immediate" },
   );
+  if (result.ok) publishAll(id, events);
+  return result;
+}
+
+// A conversa do funcionário é contínua: ao voltar outro dia, ele continua de onde parou (história 6).
+export async function getEmployeeConversation(user: SessionUser): Promise<ConversationRow> {
+  const db = await getDb();
+  const existing = await db.query.conversations.findFirst({
+    where: eq(conversations.employeeId, user.id),
+    orderBy: desc(conversations.createdAt),
+  });
+  if (existing) return existing;
+
+  const now = new Date();
+  const created: ConversationRow = {
+    id: crypto.randomUUID(),
+    employeeId: user.id,
+    employeeName: user.name,
+    employeeEmail: user.email,
+    employeeDepartment: user.department,
+    status: "agent",
+    handoffReasons: null,
+    handoffSummary: null,
+    handoffTeam: null,
+    agentConfidence: null,
+    linkedTicketId: null,
+    assignedAnalystId: null,
+    assignedAnalystName: null,
+    closedBy: null,
+    handedOffAt: null,
+    waitingUntil: null,
+    assignedAt: null,
+    closedAt: null,
+    lastMessageAt: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.insert(conversations).values(created);
+  return created;
+}
+
+export async function postEmployeeMessage(
+  user: SessionUser & { sessionId: string },
+  text: string,
+  now = new Date(),
+): Promise<Result<ChatMessage, ConversationError>> {
+  if ((await countSessionMessages(user.sessionId)) >= MAX_MESSAGES_PER_SESSION) {
+    return err({ kind: "limit_reached" });
+  }
+
+  const conversation = await getEmployeeConversation(user);
+  const db = await getDb();
+  const events: ConversationEvent[] = [];
+
+  const result = await db.transaction(
+    async (tx): Promise<Result<ChatMessage, ConversationError>> => {
+      const current = await tx.query.conversations.findFirst({
+        where: eq(conversations.id, conversation.id),
+      });
+      if (!current) return err({ kind: "not_found" });
+
+      const reopen = transitionConversation(current.status, "employee_writes");
+      const [updated] = await tx
+        .update(conversations)
+        .set({
+          ...(reopen.ok ? { status: reopen.value, closedBy: null, closedAt: null } : {}),
+          updatedAt: now,
+          lastMessageAt: now,
+        })
+        .where(eq(conversations.id, current.id))
+        .returning();
+      if (reopen.ok && updated) events.push({ type: "state", state: toState(updated) });
+
+      const [inserted] = await tx
+        .insert(messages)
+        .values({
+          conversationId: current.id,
+          author: "employee",
+          authorId: user.id,
+          authorName: user.name,
+          text,
+          sessionId: user.sessionId,
+          createdAt: now,
+        })
+        .returning();
+      if (!inserted) return err({ kind: "not_found" });
+
+      const message = toChatMessage(inserted);
+      events.push({ type: "message", message });
+      return ok(message);
+    },
+    { behavior: "immediate" },
+  );
+
+  if (result.ok) publishAll(conversation.id, events);
+  return result;
 }

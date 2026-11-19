@@ -3,6 +3,7 @@ import { LogOut, MessageCircle } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { logout } from "@/app/login/actions";
+import { LiveRefresh } from "@/components/console/live-refresh";
 import { NexoMark } from "@/components/nexo-mark";
 import { listConsole } from "@/server/conversations";
 import { requireUser } from "@/server/session";
@@ -70,6 +71,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
       </nav>
 
       <div className="flex min-h-0 min-w-0 flex-1">{children}</div>
+      <LiveRefresh />
     </div>
   );
 }

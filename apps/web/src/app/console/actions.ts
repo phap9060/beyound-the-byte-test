@@ -15,6 +15,8 @@ function describe(error: ConversationError): string {
   switch (error.kind) {
     case "not_found":
       return "Conversa não encontrada.";
+    case "limit_reached":
+      return "Limite de mensagens da sessão atingido.";
     case "not_allowed":
       return "Essa ação não está disponível no estado atual da conversa. Atualize a página.";
     case "not_yours":

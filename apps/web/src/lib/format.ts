@@ -55,3 +55,21 @@ export const PRIORITY_DOT: Record<Priority, string> = {
   media: "bg-ink/40",
   baixa: "bg-ink/20",
 };
+
+const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: TZ });
+
+// "10:05" se for hoje, "ontem", ou "16 out".
+export function formatListTime(date: Date, now: Date): string {
+  const today = dayKey.format(now);
+  const yesterday = dayKey.format(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+  const day = dayKey.format(date);
+  if (day === today) return formatTime(date.toISOString());
+  if (day === yesterday) return "ontem";
+  return formatDay(date.toISOString());
+}
+
+export function formatDayLabel(date: Date, now: Date): string {
+  const label = formatListTime(date, now);
+  if (label === "ontem") return "Ontem";
+  return /^\d{2}:\d{2}$/.test(label) ? "Hoje" : label;
+}

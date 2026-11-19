@@ -9,6 +9,7 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 
 import { env } from "../env";
 import * as schema from "./schema";
+import { seedConversationsIfEmpty } from "./seed";
 
 export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -20,6 +21,7 @@ async function open(url: string): Promise<Database> {
   await client.execute("PRAGMA foreign_keys = ON");
   // import.meta.url aponta para o bundle do Next, então as migrações são achadas pelo cwd.
   await migrate(db, { migrationsFolder: join(process.cwd(), "drizzle") });
+  await seedConversationsIfEmpty(db);
   return db;
 }
 

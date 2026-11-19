@@ -3,7 +3,6 @@
 /* O tema fica em TypeScript: tailwind.config.ts, com os tokens de src/theme/tokens.ts. */
 @config "../../tailwind.config.ts";
 
-/* O Tailwind 4 deixou botões com cursor padrão; tudo que é clicável volta a ter a mãozinha. */
 @layer base {
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),

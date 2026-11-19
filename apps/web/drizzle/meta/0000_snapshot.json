@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f1f87e97-1d77-4198-bfd4-aa718fff8a0e",
+  "id": "7c8eeb64-9a9e-417a-a298-2491e475153c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "conversations": {
@@ -16,6 +16,27 @@
         },
         "employee_id": {
           "name": "employee_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "employee_name": {
+          "name": "employee_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "employee_email": {
+          "name": "employee_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "employee_department": {
+          "name": "employee_department",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -42,16 +63,16 @@
           "notNull": false,
           "autoincrement": false
         },
-        "agent_confidence": {
-          "name": "agent_confidence",
-          "type": "real",
+        "handoff_team": {
+          "name": "handoff_team",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "assigned_analyst_id": {
-          "name": "assigned_analyst_id",
-          "type": "text",
+        "agent_confidence": {
+          "name": "agent_confidence",
+          "type": "real",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -63,11 +84,60 @@
           "notNull": false,
           "autoincrement": false
         },
+        "assigned_analyst_id": {
+          "name": "assigned_analyst_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "assigned_analyst_name": {
+          "name": "assigned_analyst_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "closed_by": {
           "name": "closed_by",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "handed_off_at": {
+          "name": "handed_off_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "waiting_until": {
+          "name": "waiting_until",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_message_at": {
+          "name": "last_message_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "created_at": {
@@ -126,8 +196,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "analyst_id": {
-          "name": "analyst_id",
+        "author_id": {
+          "name": "author_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "author_name": {
+          "name": "author_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "author_team": {
+          "name": "author_team",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -142,6 +226,13 @@
         },
         "parts": {
           "name": "parts",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "steps": {
+          "name": "steps",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

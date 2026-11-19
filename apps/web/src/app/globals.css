@@ -40,6 +40,21 @@
   --radius-lg: 14px;
 }
 
+/* O Tailwind 4 deixou botões com cursor padrão; tudo que é clicável volta a ter a mãozinha. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  select:not(:disabled),
+  label:has(input:not(:disabled)[type="checkbox"]),
+  label:has(input:not(:disabled)[type="radio"]),
+  input:not(:disabled)[type="checkbox"],
+  input:not(:disabled)[type="radio"] {
+    cursor: pointer;
+  }
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);

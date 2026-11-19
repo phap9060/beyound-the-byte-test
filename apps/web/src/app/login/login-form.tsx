@@ -91,7 +91,7 @@ export function LoginForm() {
           )}
         </div>
 
-        <label className="flex cursor-pointer items-center gap-[9px] pt-0.5 text-[13.5px] text-ink-2">
+        <label className="flex items-center gap-[9px] pt-0.5 text-[13.5px] text-ink-2">
           <input type="checkbox" name="remember" defaultChecked className="peer sr-only" />
           <span className="flex size-[18px] items-center justify-center rounded-sm border border-ink/20 text-transparent transition-colors peer-checked:border-cta peer-checked:bg-cta peer-checked:text-white peer-focus-visible:ring-3 peer-focus-visible:ring-cta/25">
             <Check className="size-3" strokeWidth={3} aria-hidden />

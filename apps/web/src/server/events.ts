@@ -4,7 +4,6 @@ import { EventEmitter } from "node:events";
 
 import type { ConversationEvent } from "@/lib/chat-types";
 
-// Barramento em memória: basta para um processo. Com várias instâncias, isto vira Redis ou LISTEN/NOTIFY.
 const cache = globalThis as unknown as { nexoBus?: EventEmitter };
 const bus = (cache.nexoBus ??= new EventEmitter().setMaxListeners(0));
 

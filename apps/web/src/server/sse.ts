@@ -6,7 +6,6 @@ export interface SseWriter {
   send: (data: unknown, options?: { event?: string; id?: number }) => void;
 }
 
-// Monta uma resposta SSE. `start` registra os ouvintes e devolve a função que os remove.
 export function sseResponse(signal: AbortSignal, start: (writer: SseWriter) => () => void) {
   const encoder = new TextEncoder();
 
@@ -28,7 +27,6 @@ export function sseResponse(signal: AbortSignal, start: (writer: SseWriter) => (
         },
       });
 
-      // Comentário periódico: proxies costumam derrubar conexões sem tráfego.
       const heartbeat = setInterval(() => {
         write(": ping\n\n");
       }, HEARTBEAT_MS);

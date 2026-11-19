@@ -8,19 +8,19 @@ import type { HttpOptions } from "./http.ts";
 
 export type TicketStatusFilter = "open" | "closed" | "all";
 
-const seg = encodeURIComponent;
+const encode = encodeURIComponent;
 
 export type TicketClient = ReturnType<typeof createTicketClient>;
 
 export function createTicketClient(options: HttpOptions) {
   const { request } = createHttp(options);
-  const tickets = (employeeId: string) => `/employees/${seg(employeeId)}/tickets`;
+  const tickets = (employeeId: string) => `/employees/${encode(employeeId)}/tickets`;
 
   return {
     findEmployeeByEmail: (email: string) =>
       request({
         method: "GET",
-        path: `/employees?email=${seg(email)}`,
+        path: `/employees?email=${encode(email)}`,
         schema: EmployeeSchema,
         idempotent: true,
       }),
@@ -28,7 +28,7 @@ export function createTicketClient(options: HttpOptions) {
     getEmployee: (employeeId: string) =>
       request({
         method: "GET",
-        path: `/employees/${seg(employeeId)}`,
+        path: `/employees/${encode(employeeId)}`,
         schema: EmployeeSchema,
         idempotent: true,
       }),
@@ -44,12 +44,11 @@ export function createTicketClient(options: HttpOptions) {
     getTicket: (employeeId: string, ticketId: string) =>
       request({
         method: "GET",
-        path: `${tickets(employeeId)}/${seg(ticketId)}`,
+        path: `${tickets(employeeId)}/${encode(ticketId)}`,
         schema: TicketSchema,
         idempotent: true,
       }),
 
-    // A chave deve vir do rascunho confirmado: confirmar duas vezes o mesmo rascunho não duplica.
     createTicket: (
       employeeId: string,
       draft: TicketDraft,
@@ -71,7 +70,7 @@ export function createTicketClient(options: HttpOptions) {
     ) =>
       request({
         method: "POST",
-        path: `${tickets(employeeId)}/${seg(ticketId)}/updates`,
+        path: `${tickets(employeeId)}/${encode(ticketId)}/updates`,
         body: update,
         schema: TicketSchema,
         idempotent: false,
@@ -80,7 +79,7 @@ export function createTicketClient(options: HttpOptions) {
     reopenTicket: (employeeId: string, ticketId: string, message: string) =>
       request({
         method: "POST",
-        path: `${tickets(employeeId)}/${seg(ticketId)}/reopen`,
+        path: `${tickets(employeeId)}/${encode(ticketId)}/reopen`,
         body: { message },
         schema: TicketSchema,
         idempotent: false,
@@ -93,7 +92,7 @@ export function createTicketClient(options: HttpOptions) {
     ) =>
       request({
         method: "POST",
-        path: `${tickets(employeeId)}/${seg(ticketId)}/transfer`,
+        path: `${tickets(employeeId)}/${encode(ticketId)}/transfer`,
         body: transfer,
         schema: TicketSchema,
         idempotent: false,
@@ -102,7 +101,7 @@ export function createTicketClient(options: HttpOptions) {
     searchKb: (query: string, limit = 3) =>
       request({
         method: "GET",
-        path: `/kb/search?q=${seg(query)}&limit=${String(limit)}`,
+        path: `/kb/search?q=${encode(query)}&limit=${String(limit)}`,
         schema: z.array(KbSearchResultSchema),
         idempotent: true,
       }),

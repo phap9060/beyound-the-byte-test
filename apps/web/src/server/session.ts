@@ -35,7 +35,8 @@ async function getSession() {
 
 export async function startSession(user: SessionUser, remember: boolean): Promise<void> {
   const session = await getSession();
-  session.updateConfig({ ...options, ttl: remember ? SESSION_TTL.remember : SESSION_TTL.default });
+  const ttl = remember ? SESSION_TTL.remember : SESSION_TTL.default;
+  session.updateConfig({ ...options, ttl });
   session.user = user;
   session.sessionId = crypto.randomUUID();
   await session.save();

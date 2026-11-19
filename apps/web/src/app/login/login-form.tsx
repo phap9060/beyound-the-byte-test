@@ -15,7 +15,7 @@ export function LoginForm() {
   const [showHint, setShowHint] = useState(false);
 
   return (
-    <form action={action} className="flex w-full max-w-[380px] flex-col gap-7" noValidate>
+    <form action={action} className="flex w-full max-w-95 flex-col gap-7" noValidate>
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-[40px] leading-[1.1] tracking-[-0.8px]">Entrar</h1>
         <p className="text-[15.5px] leading-normal text-ink-3">
@@ -23,7 +23,7 @@ export function LoginForm() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-[18px]">
+      <div className="flex flex-col gap-4.5">
         <div className="flex flex-col gap-2">
           <label htmlFor="email" className="text-[13.5px] font-medium">
             E-mail corporativo

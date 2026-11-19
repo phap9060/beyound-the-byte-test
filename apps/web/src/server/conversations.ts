@@ -29,7 +29,6 @@ export interface ConsoleItem extends ConversationRow {
 
 const PartsSchema = z.array(MessagePartSchema);
 
-// As partes vêm de JSON no banco: o que não passar no contrato é descartado em vez de quebrar a tela.
 export function toChatMessage(row: MessageRow): ChatMessage {
   const parts = PartsSchema.safeParse(row.parts ?? []);
   return {

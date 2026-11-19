@@ -15,7 +15,6 @@ export interface HttpOptions {
   baseUrl: string;
   token?: string | undefined;
   timeoutMs?: number;
-  // Tempo máximo total de uma chamada, somando tentativas e esperas: o funcionário está no chat esperando.
   deadlineMs?: number;
   retry?: Partial<RetryPolicy>;
   fetch?: typeof fetch;
@@ -39,7 +38,6 @@ export interface RequestSpec<S extends z.ZodType> {
   body?: unknown;
   headers?: Record<string, string>;
   schema: S;
-  // Se a mesma requisição pode ser repetida sem efeito duplicado (GET, ou POST com chave de idempotência).
   idempotent: boolean;
 }
 
@@ -142,7 +140,6 @@ export function createHttp(options: HttpOptions) {
       const result = await attempt(spec);
       if (result.outcome === "response") return parse(result.response, spec.schema);
 
-      // Timeout num POST sem idempotência é ambíguo: o servidor pode ter gravado. Não repete.
       const ambiguous = result.reason === "timeout" && !spec.idempotent;
       if (ambiguous || n >= retry.maxAttempts) {
         return err({ kind: "unavailable", reason: result.reason, attempts: n });

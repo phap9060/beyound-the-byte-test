@@ -1,44 +1,7 @@
 @import "tailwindcss";
 
-/* Tokens extraídos do protótipo (docs/prototipo/README.md). */
-@theme {
-  --color-paper: #ffffff;
-  --color-desk: #f6f7f9;
-  --color-ink: #1b2431;
-  --color-ink-2: #3d4656;
-  --color-ink-3: #5b6472;
-  --color-rule: #e6e8ec;
-  --color-cta: #0062c4;
-  --color-thread: #eef1f5;
-
-  --color-primary: #0285f7;
-  --color-primary-hover: #0071d6;
-  --color-primary-soft: #0285f712;
-  --color-primary-text: #0069c7;
-
-  --color-success: #00bd6c;
-  --color-success-soft: #00bd6c14;
-  --color-success-text: #00804a;
-
-  --color-warning: #f5a500;
-  --color-warning-soft: #f5a50018;
-  --color-warning-text: #946300;
-
-  --color-danger: #ee343b;
-  --color-danger-soft: #ee343b12;
-  --color-danger-text: #c4161d;
-
-  --color-violet: #a37aff;
-  --color-violet-soft: #a37aff16;
-  --color-violet-text: #6b3fe0;
-
-  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-}
+/* O tema fica em TypeScript: tailwind.config.ts, com os tokens de src/theme/tokens.ts. */
+@config "../../tailwind.config.ts";
 
 /* O Tailwind 4 deixou botões com cursor padrão; tudo que é clicável volta a ter a mãozinha. */
 @layer base {
@@ -56,8 +19,5 @@
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+  @apply bg-paper font-sans text-ink antialiased;
 }

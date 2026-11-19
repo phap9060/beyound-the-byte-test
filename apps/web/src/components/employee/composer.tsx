@@ -27,7 +27,8 @@ export function Composer({ used, onSend, disabledReason }: ComposerProps) {
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) send(e);
+    const plainEnter = e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey;
+    if (plainEnter && !e.nativeEvent.isComposing) send(e);
   }
 
   const note = limitReached

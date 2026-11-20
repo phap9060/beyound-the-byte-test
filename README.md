@@ -6,7 +6,7 @@ Agent de atendimento do service desk de TI da Nexo. O funcionário descreve o pr
 - **Analista** (Telas 4 e 5): console com filtros, resumo da transferência, assumir, devolver ao agent, encerrar e painel com os chamados do funcionário.
 - **Serviço de chamados simulado**, separado do agent, com instabilidade configurável como um sistema legado.
 
-**Demo:** https://web-production-14b6290b.up.railway.app (entre com qualquer usuário da tabela abaixo e qualquer senha).
+**Demo:** https://teste-beyond.up.railway.app (entre com qualquer usuário da tabela abaixo e qualquer senha).
 
 ## Como rodar
 
@@ -149,7 +149,7 @@ O provedor fica isolado em `packages/agent/src/model.ts`: trocar para outro prov
 
 ## Deploy
 
-Publicado no Railway: https://web-production-14b6290b.up.railway.app
+Publicado no Railway: https://teste-beyond.up.railway.app
 
 A aplicação roda num **container com volume persistente** (Railway, Fly.io ou Render). Ela não foi feita para serverless: o SQLite fica em disco, o barramento de eventos do SSE e a fila de turnos ficam na memória de um processo, e os turnos rodam depois da resposta.
 
@@ -162,6 +162,25 @@ Variáveis obrigatórias no deploy:
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Chave do modelo, só no servidor                            |
 | `SESSION_SECRET`               | Criptografia do cookie de sessão (32+ caracteres)          |
 | `TICKET_SERVICE_TOKEN`         | Token entre o web e o serviço de chamados (16+ caracteres) |
+
+### Como foi feito o deploy (Railway CLI)
+
+```bash
+railway login
+railway init --name nexo-assist                 # cria o projeto e liga a pasta a ele
+railway add --service web                       # serviço que roda o Dockerfile da raiz
+railway volume add --mount-path /data           # disco persistente para os dois SQLite
+
+# segredos gerados na hora e lidos da entrada padrão (não aparecem no terminal nem no histórico)
+openssl rand -base64 48 | railway variable set SESSION_SECRET --stdin --service web
+openssl rand -hex 24    | railway variable set TICKET_SERVICE_TOKEN --stdin --service web
+railway variable set GOOGLE_GENERATIVE_AI_API_KEY --stdin --service web   # cola a chave e Ctrl+D
+
+railway up --service web                        # envia o código (respeita o .gitignore) e faz o build
+railway domain update <domínio-gerado> --domain teste-beyond --service web
+```
+
+O `.env` local não vai para o Railway: o upload respeita o `.gitignore`, e as variáveis ficam só no painel do serviço. A cada `railway up` ou mudança de variável, o Railway faz o build da imagem e troca o container; os dados continuam no volume.
 
 Proteção contra abuso e custo:
 

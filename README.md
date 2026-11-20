@@ -6,6 +6,8 @@ Agent de atendimento do service desk de TI da Nexo. O funcionário descreve o pr
 - **Analista** (Telas 4 e 5): console com filtros, resumo da transferência, assumir, devolver ao agent, encerrar e painel com os chamados do funcionário.
 - **Serviço de chamados simulado**, separado do agent, com instabilidade configurável como um sistema legado.
 
+**Demo:** https://web-production-14b6290b.up.railway.app (entre com qualquer usuário da tabela abaixo e qualquer senha).
+
 ## Como rodar
 
 Requisitos: Node 22+ e pnpm (`corepack enable`).
@@ -146,6 +148,8 @@ Custo por turno: de 1 a 3 chamadas ao modelo, cerca de 5 mil tokens de entrada e
 O provedor fica isolado em `packages/agent/src/model.ts`: trocar para outro provedor do AI SDK é trocar essa função. O modelo pode ser trocado por `AI_MODEL`.
 
 ## Deploy
+
+Publicado no Railway: https://web-production-14b6290b.up.railway.app
 
 A aplicação roda num **container com volume persistente** (Railway, Fly.io ou Render). Ela não foi feita para serverless: o SQLite fica em disco, o barramento de eventos do SSE e a fila de turnos ficam na memória de um processo, e os turnos rodam depois da resposta.
 

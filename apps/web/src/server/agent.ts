@@ -14,12 +14,39 @@ import { conversations, messages } from "./db/schema";
 import { env } from "./env";
 import { publish } from "./events";
 import { handOffInTx } from "./handoff";
+import { createLimiter } from "./rate-limit";
 import { tickets } from "./tickets";
 
 const modelName = env.aiModel ?? DEFAULT_MODEL;
 const model = env.googleApiKey
   ? createGeminiModel({ apiKey: env.googleApiKey, model: modelName })
   : undefined;
+
+// Custo e abuso: cada turno chama o modelo de 1 a 3 vezes. Os limites valem antes de qualquer chamada.
+const MINUTE = 60_000;
+const limits = {
+  perUser: createLimiter({ max: env.limits.turnsPerUserHour, windowMs: 60 * MINUTE }),
+  perMinute: createLimiter({ max: env.limits.turnsPerMinute, windowMs: MINUTE }),
+  perDay: createLimiter({ max: env.limits.turnsPerDay, windowMs: 24 * 60 * MINUTE }),
+};
+
+function checkLimits(employeeId: string): string | undefined {
+  const day = limits.perDay.take("all");
+  if (!day.ok) {
+    return "O assistente atingiu o limite de uso de hoje. Se for urgente, peça para falar com um analista.";
+  }
+  const user = limits.perUser.take(employeeId);
+  if (!user.ok) {
+    const minutes = Math.ceil(user.retryAfterMs / MINUTE);
+    return `Você enviou muitas mensagens em pouco tempo. Tente de novo em ${String(minutes)} min.`;
+  }
+  const minute = limits.perMinute.take("all");
+  if (!minute.ok) {
+    const seconds = Math.ceil(minute.retryAfterMs / 1000);
+    return `Muita gente falando com o assistente agora. Tente de novo em ${String(seconds)} s.`;
+  }
+  return undefined;
+}
 
 // Uma fila por conversa: dois turnos da mesma conversa nunca rodam ao mesmo tempo.
 // Fica no globalThis pelo mesmo motivo do banco (o Next recarrega módulos em dev).
@@ -74,6 +101,12 @@ async function respond(conversationId: string): Promise<void> {
     }
 
     const { conversation } = loaded;
+    const limited = checkLimits(conversation.employeeId);
+    if (limited) {
+      await addAgentNotice(conversationId, limited);
+      return;
+    }
+
     const result = await runAgentTurn({
       model,
       client: tickets,

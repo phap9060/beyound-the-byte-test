@@ -10,6 +10,10 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
   AI_MODEL: z.string().min(1).optional(),
+  // O padrão de 6 turnos por minuto cabe nas 15 requisições por minuto do plano gratuito do Gemini.
+  AI_TURNS_PER_MINUTE: z.coerce.number().int().positive().default(6),
+  AI_TURNS_PER_USER_HOUR: z.coerce.number().int().positive().default(40),
+  AI_TURNS_PER_DAY: z.coerce.number().int().positive().default(500),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -36,4 +40,9 @@ export const env = {
   // Sem chave o app sobe mesmo assim; o chat avisa que o assistente não está configurado.
   googleApiKey: parsed.data.GOOGLE_GENERATIVE_AI_API_KEY,
   aiModel: parsed.data.AI_MODEL,
+  limits: {
+    turnsPerMinute: parsed.data.AI_TURNS_PER_MINUTE,
+    turnsPerUserHour: parsed.data.AI_TURNS_PER_USER_HOUR,
+    turnsPerDay: parsed.data.AI_TURNS_PER_DAY,
+  },
 };

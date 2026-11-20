@@ -11,6 +11,5 @@ RUN pnpm build
 FROM base AS run
 ENV NODE_ENV=production MASTRA_TELEMETRY_DISABLED=1
 COPY --from=build /app /app
-VOLUME /data
 EXPOSE 3000
 CMD ["sh", "deploy/start.sh"]

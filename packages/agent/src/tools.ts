@@ -197,8 +197,6 @@ export function createTools(ctx: ToolContext) {
         `${PRIORITY_LABEL[decision.priority]}: ${decision.reason} Prazo de ${slaLabel(decision.priority)}.`,
       );
 
-      // A checagem de duplicidade é do código: o modelo só pode dispensar chamados específicos,
-      // e quais ele dispensou fica registrado no passo.
       const dismissed = new Set(input.chamadosDiferentes ?? []);
       const similar = await findSimilar(input.tipo, input.categoria);
       const pending = similar.filter((t) => !dismissed.has(t.id));

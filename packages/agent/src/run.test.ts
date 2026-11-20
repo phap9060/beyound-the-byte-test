@@ -1,16 +1,8 @@
-import { err, ok } from "@nexo/domain";
-import type { Ticket, TicketSummary } from "@nexo/domain";
-import type { ClientError } from "@nexo/ticket-client";
 import { MockLanguageModelV4 } from "ai/test";
 import { describe, expect, it } from "vitest";
 
 import { runAgentTurn } from "./run.ts";
-import type { AgentTicketClient } from "./tools.ts";
-
-// Quarta-feira, 14h em Brasília.
-const NOW = new Date("2026-11-18T17:00:00Z");
-const DAY = 24 * 60 * 60 * 1000;
-const ago = (days: number) => new Date(NOW.getTime() - days * DAY);
+import { ANA, NOW, TICKETS, ago, createFakeClient, ticket } from "./testing/fixtures.ts";
 
 const usage = {
   inputTokens: { total: 100, noCache: 100, cacheRead: 0, cacheWrite: 0 },
@@ -48,97 +40,12 @@ function reply(overrides: Record<string, unknown> = {}) {
   });
 }
 
-function ticket(partial: Partial<Ticket> & Pick<Ticket, "id" | "title">): Ticket {
-  return {
-    type: partial.id.startsWith("INC") ? "INC" : "REQ",
-    description: "Descrição de teste do chamado.",
-    category: "hardware",
-    priority: "media",
-    status: "aguardando_analista",
-    affected: "somente_eu",
-    requesterId: "emp-ana",
-    createdAt: ago(10),
-    lastSupportUpdateAt: ago(6),
-    updates: [],
-    ...partial,
-  };
-}
-
-const notFound: ClientError = { kind: "service", status: 404, code: "not_found", message: "x" };
-
-function fakeClient(tickets: Ticket[]) {
-  const calls: { method: string; employeeId?: string; args: unknown[] }[] = [];
-  const client: AgentTicketClient = {
-    listTickets: (employeeId, status) => {
-      calls.push({ method: "listTickets", employeeId, args: [status] });
-      const mine = tickets.filter((t) => t.requesterId === employeeId);
-      const open = (t: TicketSummary) =>
-        ["aguardando_analista", "em_andamento", "aprovado"].includes(t.status);
-      const filtered =
-        status === "all" ? mine : mine.filter((t) => (status === "open") === open(t));
-      return Promise.resolve(ok(filtered));
-    },
-    getTicket: (employeeId, ticketId) => {
-      calls.push({ method: "getTicket", employeeId, args: [ticketId] });
-      const found = tickets.find((t) => t.id === ticketId && t.requesterId === employeeId);
-      return Promise.resolve(found ? ok(found) : err(notFound));
-    },
-    searchKb: (query) => {
-      calls.push({ method: "searchKb", args: [query] });
-      return Promise.resolve(
-        ok([
-          {
-            id: "kb-1",
-            title: "VPN com erro 809",
-            body: "Reinstale o cliente.",
-            category: "rede_vpn" as const,
-            score: 3,
-          },
-        ]),
-      );
-    },
-    transferTicket: (employeeId, ticketId, transfer) => {
-      calls.push({ method: "transferTicket", employeeId, args: [ticketId, transfer] });
-      const found = tickets.find((t) => t.id === ticketId);
-      return Promise.resolve(found ? ok(found) : err(notFound));
-    },
-  };
-  return { client, calls };
-}
-
-const SEED = [
-  ticket({ id: "INC-20311", title: "Notebook lento após atualização" }),
-  ticket({
-    id: "REQ-10442",
-    title: "Segundo monitor",
-    status: "aprovado",
-    priority: "baixa",
-    lastSupportUpdateAt: ago(1),
-  }),
-  ticket({
-    id: "INC-20150",
-    title: "Senha do SAP bloqueada",
-    category: "acesso",
-    status: "resolvido",
-    resolvedAt: ago(4),
-  }),
-  ticket({ id: "INC-19877", title: "Teclado falhando", status: "resolvido", resolvedAt: ago(20) }),
-  ticket({
-    id: "INC-20335",
-    title: "VPN do Bruno",
-    requesterId: "emp-bruno",
-    category: "rede_vpn",
-  }),
-];
-
-const ana = { id: "emp-ana", name: "Ana Souza" };
-
-async function run(model: MockLanguageModelV4, message = "oi", tickets = SEED) {
-  const { client, calls } = fakeClient(tickets);
+async function run(model: MockLanguageModelV4, message = "oi", tickets = TICKETS) {
+  const { client, calls } = createFakeClient(tickets);
   const result = await runAgentTurn({
     model,
     client,
-    employee: ana,
+    employee: ANA,
     history: [],
     message,
     now: NOW,
@@ -160,7 +67,7 @@ describe("runAgentTurn", () => {
       {
         label: "consultou seus chamados",
         status: "done",
-        detail: "2 chamado(s) abertos, 1 vencido(s)",
+        detail: "3 chamado(s) abertos, 1 vencido(s)",
       },
     ]);
     expect(turn.parts).toHaveLength(1);
@@ -264,7 +171,7 @@ describe("runAgentTurn", () => {
       compromissoHoje: false,
     };
     const tickets = [
-      ...SEED,
+      ...TICKETS,
       ticket({ id: "INC-20400", title: "Monitor piscando", lastSupportUpdateAt: ago(0) }),
     ];
 
@@ -291,6 +198,18 @@ describe("runAgentTurn", () => {
       tickets,
     );
     expect(all.turn.parts.map((p) => p.type)).toEqual(["draft"]);
+  });
+
+  it("mostra o card do chamado citado no texto, mas só se uma ferramenta o trouxe", async () => {
+    const { turn } = await run(
+      scripted(
+        call("consultar_meus_chamados", { situacao: "abertos" }),
+        reply({ mensagem: "Você já tem o INC-20311 aberto. O INC-20335 não é seu." }),
+      ),
+    );
+
+    expect(turn.parts).toHaveLength(1);
+    expect(turn.parts[0]).toMatchObject({ type: "ticket_card", ticket: { id: "INC-20311" } });
   });
 
   it("não prepara reabertura fora da janela de 7 dias", async () => {
@@ -371,15 +290,36 @@ describe("runAgentTurn", () => {
     expect(turn.handoff?.reasons).toEqual(["baixa_confianca"]);
   });
 
+  it("descarta só o campo opcional fora do formato e mantém a resposta", async () => {
+    const { turn } = await run(
+      scripted(
+        reply({ mensagem: "Pode me dizer mais?", opcoes: { itens: ["Só uma"], numeradas: false } }),
+      ),
+    );
+
+    expect(turn.text).toBe("Pode me dizer mais?");
+    expect(turn.handoff).toBeUndefined();
+    expect(turn.parts).toEqual([]);
+    expect(turn.steps.at(-1)).toMatchObject({ label: "ajustou a resposta", status: "failed" });
+  });
+
+  it("cai na contingência quando falta o essencial e diz o porquê", async () => {
+    const { turn } = await run(scripted(call("responder", { mensagem: "oi" })));
+
+    expect(turn.decision.confidence).toBe(0);
+    expect(turn.decision.reason).toContain("fora do formato esperado");
+    expect(turn.handoff?.reasons).toEqual(["baixa_confianca"]);
+  });
+
   it("devolve erro (sem lançar) quando o provedor do modelo falha", async () => {
     const model = new MockLanguageModelV4({
       doGenerate: () => Promise.reject(new Error("quota exceeded")),
     });
-    const { client } = fakeClient(SEED);
+    const { client } = createFakeClient(TICKETS);
     const result = await runAgentTurn({
       model,
       client,
-      employee: ana,
+      employee: ANA,
       history: [],
       message: "oi",
       now: NOW,
@@ -390,11 +330,11 @@ describe("runAgentTurn", () => {
 
   it("envia o histórico e as instruções com o nome do funcionário", async () => {
     const model = scripted(reply());
-    const { client } = fakeClient(SEED);
+    const { client } = createFakeClient(TICKETS);
     await runAgentTurn({
       model,
       client,
-      employee: ana,
+      employee: ANA,
       now: NOW,
       message: "e agora?",
       history: [

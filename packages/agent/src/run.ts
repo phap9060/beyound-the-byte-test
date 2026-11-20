@@ -96,8 +96,7 @@ export async function runAgentTurn(input: AgentTurnInput): Promise<Result<AgentT
   }
 
   const replyCall = output.toolCalls.findLast((c) => c.payload.toolName === REPLY_TOOL);
-  const parsed = ReplySchema.safeParse(replyCall?.payload.args);
-  const reply: Reply = parsed.success ? parsed.data : fallbackReply(replyCall === undefined);
+  const reply = replyCall ? parseReply(replyCall.payload.args, recorder) : fallbackReply();
 
   return ok({
     ...assemble(reply, recorder),
@@ -114,15 +113,32 @@ function sum(values: (number | undefined)[]): number {
   return values.reduce<number>((total, v) => total + (v ?? 0), 0);
 }
 
-function fallbackReply(missing: boolean): Reply {
+// Um campo opcional fora do formato (ex.: uma opção só) não pode jogar fora a resposta inteira:
+// descarta o campo e registra o motivo. Só sem mensagem ou confiança vale a contingência.
+const CoreReplySchema = ReplySchema.omit({ opcoes: true, mostrarChamados: true });
+
+function parseReply(args: unknown, recorder: TurnRecorder): Reply {
+  const strict = ReplySchema.safeParse(args);
+  if (strict.success) return strict.data;
+
+  const issues = strict.error.issues.map((i) => i.path.join(".") || i.message).join(", ");
+  const core = CoreReplySchema.safeParse(args);
+  if (core.success) {
+    recorder.step("ajustou a resposta", "failed", `campo fora do formato descartado: ${issues}`);
+    return core.data;
+  }
+  return fallbackReply(`O modelo respondeu fora do formato esperado (${issues}).`);
+}
+
+function fallbackReply(
+  reason = `O modelo não concluiu a resposta em ${String(MAX_STEPS)} passos.`,
+): Reply {
   return {
     mensagem: "Desculpe, não consegui concluir a sua solicitação.",
     intencao: "conversa",
     entendimento: "Não foi possível interpretar o pedido.",
     confianca: 0,
-    motivo: missing
-      ? `O modelo não concluiu a resposta em ${String(MAX_STEPS)} passos.`
-      : "O modelo respondeu fora do formato esperado.",
+    motivo: reason,
   };
 }
 
@@ -179,7 +195,9 @@ function assemble(reply: Reply, recorder: TurnRecorder) {
 // assim ele não consegue mostrar um chamado inventado ou de outra pessoa.
 function buildParts(reply: Reply, recorder: TurnRecorder, handedOff: boolean): MessagePart[] {
   const parts: MessagePart[] = [];
-  const shown = [...new Set(reply.mostrarChamados ?? [])].flatMap((id) => {
+  // Também entram os chamados citados no texto: o modelo às vezes fala de um e esquece o card.
+  const mentioned = reply.mensagem.match(/\b(?:INC|REQ)-\d{4,}\b/g) ?? [];
+  const shown = [...new Set([...(reply.mostrarChamados ?? []), ...mentioned])].flatMap((id) => {
     const view = recorder.seen.get(id);
     return view ? [view] : [];
   });

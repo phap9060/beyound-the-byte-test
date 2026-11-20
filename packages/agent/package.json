@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "chat": "tsx --env-file-if-exists=../../apps/web/.env scripts/chat.ts"
+    "chat": "tsx --env-file-if-exists=../../apps/web/.env scripts/chat.ts",
+    "eval": "tsx --env-file-if-exists=../../apps/web/.env evals/run.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "4.0.111",

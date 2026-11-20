@@ -15,6 +15,7 @@ import {
 import { QuickOptions } from "@/components/chat/quick-options";
 import { TicketCard } from "@/components/chat/ticket-card";
 import { TicketSelector } from "@/components/chat/ticket-selector";
+import { UpdateDraftCard } from "@/components/chat/update-draft-card";
 import type { ChatMessage, ConversationState } from "@/lib/chat-types";
 import { formatTime } from "@/lib/format";
 
@@ -280,5 +281,7 @@ function PartView({
           ticketId={part.ticketId}
         />
       );
+    case "update_draft":
+      return <UpdateDraftCard part={part} />;
   }
 }

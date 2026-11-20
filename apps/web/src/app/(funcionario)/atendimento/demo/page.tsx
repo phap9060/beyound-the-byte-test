@@ -1,5 +1,5 @@
-import { computeDueAt, getSlaStatus } from "@nexo/domain";
-import type { Ticket, TicketDraft, TicketView } from "@nexo/domain";
+import { computeDueAt, toTicketView } from "@nexo/domain";
+import type { TicketDraft } from "@nexo/domain";
 import type { Metadata } from "next";
 
 import { StatusPill, TopBar } from "@/components/employee/top-bar";
@@ -12,31 +12,13 @@ export const metadata: Metadata = { title: "Demonstração · Nexo Assist" };
 
 const DAY = 24 * 60 * 60 * 1000;
 
-function view(t: Omit<Ticket, "updates">, now: Date): TicketView {
-  const sla = getSlaStatus(t, now);
-  return {
-    id: t.id,
-    type: t.type,
-    title: t.title,
-    description: t.description,
-    category: t.category,
-    ...(t.subcategory ? { subcategory: t.subcategory } : {}),
-    priority: t.priority,
-    status: t.status,
-    affected: t.affected,
-    createdAt: t.createdAt.toISOString(),
-    lastSupportUpdateAt: t.lastSupportUpdateAt.toISOString(),
-    sla: sla.state === "nao_se_aplica" ? sla : { state: sla.state, dueAt: sla.dueAt.toISOString() },
-  };
-}
-
 export default function DemoPage() {
   const now = new Date();
   const ago = (days: number) => new Date(now.getTime() - days * DAY);
   const base = { requesterId: "emp-ana", affected: "somente_eu" } as const;
 
   const tickets = [
-    view(
+    toTicketView(
       {
         ...base,
         id: "INC-20311",
@@ -53,7 +35,7 @@ export default function DemoPage() {
       },
       now,
     ),
-    view(
+    toTicketView(
       {
         ...base,
         id: "INC-20298",
@@ -68,7 +50,7 @@ export default function DemoPage() {
       },
       now,
     ),
-    view(
+    toTicketView(
       {
         ...base,
         id: "REQ-10442",

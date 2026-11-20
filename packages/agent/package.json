@@ -1,0 +1,27 @@
+{
+  "name": "@nexo/agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "chat": "tsx --env-file-if-exists=../../apps/web/.env scripts/chat.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "4.0.111",
+    "@mastra/core": "1.82.0",
+    "@nexo/domain": "workspace:*",
+    "@nexo/ticket-client": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "ai": "7.0.162",
+    "vitest": "5.1.0",
+    "tsx": "4.23.15"
+  }
+}

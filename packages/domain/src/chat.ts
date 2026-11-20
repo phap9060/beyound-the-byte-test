@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getSlaStatus } from "./sla.ts";
 import {
   AffectedSchema,
   CategorySchema,
@@ -9,14 +10,50 @@ import {
   TicketStatusSchema,
   TicketTypeSchema,
 } from "./ticket.ts";
+import type { TicketSummary } from "./ticket.ts";
 
 // Contrato entre o agent e a interface: o que uma mensagem do agent pode mostrar além do texto.
 
 export const AgentStepSchema = z.object({
   label: z.string().min(1),
   status: z.enum(["done", "failed"]),
+  detail: z.string().optional(),
 });
 export type AgentStep = z.infer<typeof AgentStepSchema>;
+
+export const INTENTS = [
+  "duvida",
+  "consultar_chamado",
+  "abrir_chamado",
+  "complementar_chamado",
+  "reabrir_chamado",
+  "falar_com_analista",
+  "fora_do_escopo",
+  "conversa",
+] as const;
+export const IntentSchema = z.enum(INTENTS);
+export type Intent = z.infer<typeof IntentSchema>;
+
+export const INTENT_LABEL: Record<Intent, string> = {
+  duvida: "Tirar uma dúvida",
+  consultar_chamado: "Consultar um chamado",
+  abrir_chamado: "Abrir um chamado",
+  complementar_chamado: "Complementar um chamado",
+  reabrir_chamado: "Reabrir um chamado",
+  falar_com_analista: "Falar com um analista",
+  fora_do_escopo: "Assunto fora de TI",
+  conversa: "Conversa geral",
+};
+
+// O "porquê" de cada resposta do agent: é o que o painel de detalhes mostra.
+export const AgentDecisionSchema = z.object({
+  intent: IntentSchema,
+  understood: z.string(),
+  action: z.string(),
+  confidence: z.number().min(0).max(1),
+  reason: z.string(),
+});
+export type AgentDecision = z.infer<typeof AgentDecisionSchema>;
 
 export const TicketViewSchema = z.object({
   id: TicketIdSchema,
@@ -59,5 +96,32 @@ export const MessagePartSchema = z.discriminatedUnion("type", [
     state: z.enum(["pending", "confirmed", "cancelled"]),
     ticketId: TicketIdSchema.optional(),
   }),
+  z.object({
+    type: z.literal("update_draft"),
+    draftId: z.string().min(1),
+    action: z.enum(["complementar", "reabrir"]),
+    ticketId: TicketIdSchema,
+    ticketTitle: z.string(),
+    message: z.string().min(1),
+    state: z.enum(["pending", "confirmed", "cancelled"]),
+  }),
 ]);
 export type MessagePart = z.infer<typeof MessagePartSchema>;
+
+export function toTicketView(ticket: TicketSummary, now: Date): TicketView {
+  const sla = getSlaStatus(ticket, now);
+  return {
+    id: ticket.id,
+    type: ticket.type,
+    title: ticket.title,
+    description: ticket.description,
+    category: ticket.category,
+    ...(ticket.subcategory === undefined ? {} : { subcategory: ticket.subcategory }),
+    priority: ticket.priority,
+    status: ticket.status,
+    affected: ticket.affected,
+    createdAt: ticket.createdAt.toISOString(),
+    lastSupportUpdateAt: ticket.lastSupportUpdateAt.toISOString(),
+    sla: sla.state === "nao_se_aplica" ? sla : { state: sla.state, dueAt: sla.dueAt.toISOString() },
+  };
+}

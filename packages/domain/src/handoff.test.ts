@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CONFIDENCE_THRESHOLD, evaluateHandoff } from "./handoff.ts";
+import { CONFIDENCE_THRESHOLD, evaluateHandoff, handoffTeam } from "./handoff.ts";
 
 describe("evaluateHandoff", () => {
   it("não transfere quando nada exige", () => {
@@ -48,5 +48,14 @@ describe("evaluateHandoff", () => {
         confidence: 0.3,
       }),
     ).toEqual(["pedido_do_funcionario", "caso_critico", "chamado_vencido", "baixa_confianca"]);
+  });
+});
+
+describe("handoffTeam", () => {
+  it("manda crítico e vencido para o N2 e o resto para o N1", () => {
+    expect(handoffTeam(["caso_critico"])).toBe("Suporte N2");
+    expect(handoffTeam(["pedido_do_funcionario", "chamado_vencido"])).toBe("Suporte N2");
+    expect(handoffTeam(["pedido_do_funcionario"])).toBe("Suporte N1");
+    expect(handoffTeam(["baixa_confianca"])).toBe("Suporte N1");
   });
 });

@@ -3,7 +3,10 @@
 import type { MessagePart } from "@nexo/domain";
 import { useEffect, useRef, useState } from "react";
 
-import { sendEmployeeMessage } from "@/app/(funcionario)/atendimento/actions";
+import {
+  resolveProposalAction,
+  sendEmployeeMessage,
+} from "@/app/(funcionario)/atendimento/actions";
 import { DraftCard } from "@/components/chat/draft-card";
 import {
   AgentBubble,
@@ -20,6 +23,7 @@ import type { ChatMessage, ConversationState } from "@/lib/chat-types";
 import { formatTime } from "@/lib/format";
 
 import { Composer } from "./composer";
+import type { ComposerHandle } from "./composer";
 import { StatusPill, TopBar } from "./top-bar";
 
 interface Props {
@@ -31,8 +35,20 @@ interface Props {
 }
 
 function upsert(list: ChatMessage[], message: ChatMessage): ChatMessage[] {
-  if (list.some((m) => m.id === message.id)) return list;
+  if (list.some((m) => m.id === message.id)) {
+    return list.map((m) => (m.id === message.id ? message : m));
+  }
   return [...list, message].sort((a, b) => a.id - b.id);
+}
+
+type Choice = "confirm" | "cancel";
+
+interface ProposalHandlers {
+  // Só o rascunho pendente mais recente aceita ação; os anteriores ficaram para trás na conversa.
+  activeDraft: string | undefined;
+  busyDraft: string | undefined;
+  onResolve: (messageId: number, draftId: string, choice: Choice) => void;
+  onEdit: () => void;
 }
 
 export function EmployeeChat(props: Props) {
@@ -43,7 +59,10 @@ export function EmployeeChat(props: Props) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
   const [connected, setConnected] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [busyDraft, setBusyDraft] = useState<string>();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<ComposerHandle>(null);
   const firstId = useRef(initialMessages.at(-1)?.id ?? 0);
 
   useEffect(() => {
@@ -53,6 +72,14 @@ export function EmployeeChat(props: Props) {
     source.addEventListener("message", (e) => {
       const data = JSON.parse(String(e.data)) as { message: ChatMessage };
       setMessages((list) => upsert(list, data.message));
+    });
+    source.addEventListener("message_updated", (e) => {
+      const data = JSON.parse(String(e.data)) as { message: ChatMessage };
+      setMessages((list) => upsert(list, data.message));
+    });
+    source.addEventListener("agent", (e) => {
+      const data = JSON.parse(String(e.data)) as { working: boolean };
+      setWorking(data.working);
     });
     source.addEventListener("state", (e) => {
       const data = JSON.parse(String(e.data)) as { state: ConversationState };
@@ -71,7 +98,7 @@ export function EmployeeChat(props: Props) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length]);
+  }, [messages.length, working]);
 
   async function send(text: string) {
     setSending(true);
@@ -86,7 +113,30 @@ export function EmployeeChat(props: Props) {
     setMessages((list) => upsert(list, result.message));
   }
 
+  async function resolve(messageId: number, draftId: string, choice: Choice) {
+    setBusyDraft(draftId);
+    setError(undefined);
+    const result = await resolveProposalAction({ messageId, draftId, choice });
+    setBusyDraft(undefined);
+    if (!result.ok) setError(result.error);
+  }
+
+  const activeDraft = messages
+    .flatMap((m) => m.parts)
+    .findLast((p) => (p.type === "draft" || p.type === "update_draft") && p.state === "pending");
+
+  const proposals: ProposalHandlers = {
+    activeDraft:
+      activeDraft?.type === "draft" || activeDraft?.type === "update_draft"
+        ? activeDraft.draftId
+        : undefined,
+    busyDraft,
+    onResolve: (messageId, draftId, choice) => void resolve(messageId, draftId, choice),
+    onEdit: () => composerRef.current?.fill("Quero ajustar o rascunho: "),
+  };
+
   const lastId = messages.at(-1)?.id;
+  const agentActive = state.status === "agent";
 
   return (
     <>
@@ -107,10 +157,12 @@ export function EmployeeChat(props: Props) {
                 key={m.id}
                 message={m}
                 answer={messages.slice(i + 1).find((n) => n.author === "employee")?.text}
-                interactive={m.id === lastId && state.status === "agent" && !sending}
+                interactive={m.id === lastId && agentActive && !sending && !working}
                 onAnswer={(text) => void send(text)}
+                proposals={proposals}
               />
             ))}
+            {working && agentActive && <Thinking />}
             <StateBanner state={state} />
             <div ref={bottomRef} />
           </div>
@@ -124,6 +176,7 @@ export function EmployeeChat(props: Props) {
               </p>
             )}
             <Composer
+              ref={composerRef}
               used={used}
               onSend={(text) => void send(text)}
               disabledReason={sending ? "Enviando…" : undefined}
@@ -181,14 +234,30 @@ function StateBanner({ state }: { state: ConversationState }) {
   return null;
 }
 
+function Thinking() {
+  return (
+    <AgentMessage steps={[]}>
+      <p role="status" className="flex items-center gap-2 text-[13.5px] text-ink-3">
+        <span className="flex gap-1" aria-hidden>
+          <span className="size-1.5 animate-bounce rounded-full bg-ink-3 [animation-delay:-0.3s]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-ink-3 [animation-delay:-0.15s]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-ink-3" />
+        </span>
+        Analisando sua mensagem…
+      </p>
+    </AgentMessage>
+  );
+}
+
 interface MessageViewProps {
   message: ChatMessage;
   answer: string | undefined;
   interactive: boolean;
   onAnswer: (text: string) => void;
+  proposals: ProposalHandlers;
 }
 
-function MessageView({ message: m, answer, interactive, onAnswer }: MessageViewProps) {
+function MessageView({ message: m, answer, interactive, onAnswer, proposals }: MessageViewProps) {
   switch (m.author) {
     case "employee":
       return <EmployeeMessage text={m.text} />;
@@ -198,7 +267,7 @@ function MessageView({ message: m, answer, interactive, onAnswer }: MessageViewP
       return <AnalystMessage name={m.authorName ?? "Analista"} team={m.authorTeam} text={m.text} />;
     case "agent":
       return (
-        <AgentMessage steps={m.steps}>
+        <AgentMessage steps={m.steps} trace={m.trace}>
           {m.text && (
             <AgentBubble>
               <p className="whitespace-pre-wrap">{m.text}</p>
@@ -207,10 +276,12 @@ function MessageView({ message: m, answer, interactive, onAnswer }: MessageViewP
           {m.parts.map((part, i) => (
             <PartView
               key={i}
+              messageId={m.id}
               part={part}
               answer={answer}
               interactive={interactive}
               onAnswer={onAnswer}
+              proposals={proposals}
             />
           ))}
         </AgentMessage>
@@ -218,16 +289,33 @@ function MessageView({ message: m, answer, interactive, onAnswer }: MessageViewP
   }
 }
 
+function proposalActions(proposals: ProposalHandlers, messageId: number, draftId: string) {
+  if (proposals.activeDraft !== draftId) return { busy: false };
+  return {
+    busy: proposals.busyDraft === draftId,
+    onConfirm: () => {
+      proposals.onResolve(messageId, draftId, "confirm");
+    },
+    onCancel: () => {
+      proposals.onResolve(messageId, draftId, "cancel");
+    },
+  };
+}
+
 function PartView({
+  messageId,
   part,
   answer,
   interactive,
   onAnswer,
+  proposals,
 }: {
+  messageId: number;
   part: MessagePart;
   answer: string | undefined;
   interactive: boolean;
   onAnswer: (text: string) => void;
+  proposals: ProposalHandlers;
 }) {
   const now = new Date();
   switch (part.type) {
@@ -279,9 +367,13 @@ function PartView({
           dueAt={part.dueAt}
           state={part.state}
           ticketId={part.ticketId}
+          {...proposalActions(proposals, messageId, part.draftId)}
+          onEdit={proposals.activeDraft === part.draftId ? proposals.onEdit : undefined}
         />
       );
     case "update_draft":
-      return <UpdateDraftCard part={part} />;
+      return (
+        <UpdateDraftCard part={part} {...proposalActions(proposals, messageId, part.draftId)} />
+      );
   }
 }

@@ -29,3 +29,10 @@ export function evaluateHandoff(input: HandoffInput): HandoffReason[] {
   if (input.confidence < CONFIDENCE_THRESHOLD) reasons.push("baixa_confianca");
   return reasons;
 }
+
+// Crítico e vencido vão direto para o N2; o resto passa pela triagem do N1.
+export function handoffTeam(reasons: readonly HandoffReason[]): string {
+  return reasons.includes("caso_critico") || reasons.includes("chamado_vencido")
+    ? "Suporte N2"
+    : "Suporte N1";
+}

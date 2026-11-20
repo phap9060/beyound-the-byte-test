@@ -1,4 +1,5 @@
-import { HANDOFF_REASON_LABEL } from "@nexo/domain";
+import { HANDOFF_REASON_LABEL, PRIORITY_LABEL } from "@nexo/domain";
+import type { MessagePart } from "@nexo/domain";
 import {
   ArrowLeft,
   ArrowRightLeft,
@@ -16,7 +17,9 @@ import type { Route } from "next";
 import Link from "next/link";
 import { Fragment } from "react";
 
+import { DecisionDetails } from "@/components/chat/decision-details";
 import { formatDayLabel, formatTime } from "@/lib/format";
+import { toChatMessage } from "@/server/conversations";
 import type { ConversationRow, MessageRow } from "@/server/conversations";
 
 import { Avatar } from "./avatar";
@@ -234,12 +237,51 @@ function MessageItem({ message: m }: { message: MessageRow }) {
         text={m.text}
         ticks
       />
-      {isAgent && m.steps && m.steps.length > 0 && (
-        <span className="px-1 text-[11.5px] text-ink-3">
+      {isAgent && <AgentExtras message={m} />}
+    </li>
+  );
+}
+
+const STATE_TEXT = {
+  pending: "aguardando confirmação",
+  confirmed: "confirmado",
+  cancelled: "cancelado",
+};
+
+// No console o analista não precisa dos cards completos, só do que foi mostrado e do que aconteceu.
+function describePart(part: MessagePart): string | undefined {
+  switch (part.type) {
+    case "ticket_card":
+      return `Mostrou ${part.ticket.id}`;
+    case "ticket_list":
+      return `Mostrou ${part.tickets.map((t) => t.id).join(", ")}`;
+    case "draft":
+      return `Rascunho ${part.draft.type} · ${PRIORITY_LABEL[part.draft.priority]} · ${STATE_TEXT[part.state]}${part.ticketId ? ` (${part.ticketId})` : ""}`;
+    case "update_draft":
+      return `${part.action === "reabrir" ? "Reabertura" : "Complemento"} do ${part.ticketId} · ${STATE_TEXT[part.state]}`;
+    case "text":
+    case "quick_options":
+      return undefined;
+  }
+}
+
+function AgentExtras({ message }: { message: MessageRow }) {
+  const m = toChatMessage(message);
+  const parts = m.parts.map(describePart).filter((p) => p !== undefined);
+  return (
+    <div className="flex w-full max-w-[min(520px,90%)] flex-col items-end gap-1.5">
+      {m.steps.length > 0 && (
+        <span className="px-1 text-right text-[11.5px] text-ink-3">
           {m.steps.map((s) => s.label).join(" · ")}
         </span>
       )}
-    </li>
+      {parts.length > 0 && (
+        <span className="px-1 text-right text-[11.5px] font-medium text-ink-2">
+          {parts.join(" · ")}
+        </span>
+      )}
+      {m.trace && <DecisionDetails trace={m.trace} steps={m.steps} />}
+    </div>
   );
 }
 

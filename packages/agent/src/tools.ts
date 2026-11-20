@@ -10,6 +10,7 @@ import {
   TicketIdSchema,
   TicketTypeSchema,
   classifyPriority,
+  handoffTeam,
   computeDueAt,
   isOpenStatus,
   reopenEligibility,
@@ -369,8 +370,7 @@ export function createTools(ctx: ToolContext) {
       recorder.step("transferiu para um analista", "done", HANDOFF_REASON_LABEL[reason]);
 
       if (ticketId) {
-        const team =
-          reason === "caso_critico" || reason === "chamado_vencido" ? "Suporte N2" : "Suporte N1";
+        const team = handoffTeam([reason]);
         const result = await client.transferTicket(employeeId, ticketId, { team, summary: resumo });
         recorder.step(
           `encaminhou o ${ticketId}`,

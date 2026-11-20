@@ -51,6 +51,7 @@ export const messages = sqliteTable(
     text: text("text").notNull(),
     parts: text("parts", { mode: "json" }).$type<unknown[]>(),
     steps: text("steps", { mode: "json" }).$type<AgentStep[]>(),
+    trace: text("trace", { mode: "json" }).$type<unknown>(),
     sessionId: text("session_id"),
     createdAt: timestamp("created_at").notNull(),
   },

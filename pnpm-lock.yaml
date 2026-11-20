@@ -239,6 +239,9 @@ importers:
       '@libsql/client':
         specifier: 0.18.0
         version: 0.18.0
+      '@nexo/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@nexo/domain':
         specifier: workspace:*
         version: link:../../packages/domain

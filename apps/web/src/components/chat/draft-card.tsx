@@ -18,9 +18,9 @@ interface DraftCardProps {
   state: DraftState;
   ticketId?: string | undefined;
   busy?: boolean;
-  onConfirm?: () => void;
-  onEdit?: () => void;
-  onCancel?: () => void;
+  onConfirm?: (() => void) | undefined;
+  onEdit?: (() => void) | undefined;
+  onCancel?: (() => void) | undefined;
 }
 
 const STATE_LABEL: Record<DraftState, { text: string; dot: string; color: string }> = {

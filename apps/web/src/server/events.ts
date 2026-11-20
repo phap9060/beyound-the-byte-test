@@ -12,7 +12,8 @@ const CONSOLE = "console";
 
 export function publish(conversationId: string, event: ConversationEvent): void {
   bus.emit(conversationChannel(conversationId), event);
-  bus.emit(CONSOLE, conversationId);
+  // "Agent pensando" só interessa ao chat; o console atualiza quando a resposta chega.
+  if (event.type !== "agent") bus.emit(CONSOLE, conversationId);
 }
 
 export function onConversation(id: string, listener: (event: ConversationEvent) => void) {

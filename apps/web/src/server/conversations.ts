@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  AgentTraceSchema,
   MAX_MESSAGES_PER_SESSION,
   MessagePartSchema,
   err,
@@ -39,6 +40,7 @@ export function toChatMessage(row: MessageRow): ChatMessage {
     text: row.text,
     parts: parts.success ? parts.data : [],
     steps: row.steps ?? [],
+    trace: AgentTraceSchema.safeParse(row.trace).data ?? null,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -51,7 +53,7 @@ export function toState(c: ConversationRow): ConversationState {
   };
 }
 
-function publishAll(conversationId: string, events: ConversationEvent[]): void {
+export function publishAll(conversationId: string, events: ConversationEvent[]): void {
   for (const event of events) publish(conversationId, event);
 }
 
@@ -308,7 +310,7 @@ export async function postEmployeeMessage(
   user: SessionUser & { sessionId: string },
   text: string,
   now = new Date(),
-): Promise<Result<ChatMessage, ConversationError>> {
+): Promise<Result<{ message: ChatMessage; conversationId: string }, ConversationError>> {
   if ((await countSessionMessages(user.sessionId)) >= MAX_MESSAGES_PER_SESSION) {
     return err({ kind: "limit_reached" });
   }
@@ -318,7 +320,9 @@ export async function postEmployeeMessage(
   const events: ConversationEvent[] = [];
 
   const result = await db.transaction(
-    async (tx): Promise<Result<ChatMessage, ConversationError>> => {
+    async (
+      tx,
+    ): Promise<Result<{ message: ChatMessage; conversationId: string }, ConversationError>> => {
       const current = await tx.query.conversations.findFirst({
         where: eq(conversations.id, conversation.id),
       });
@@ -352,7 +356,7 @@ export async function postEmployeeMessage(
 
       const message = toChatMessage(inserted);
       events.push({ type: "message", message });
-      return ok(message);
+      return ok({ message, conversationId: current.id });
     },
     { behavior: "immediate" },
   );

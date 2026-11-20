@@ -2,18 +2,30 @@
 
 import { MAX_MESSAGES_PER_SESSION } from "@nexo/domain";
 import { ArrowUp } from "lucide-react";
-import { useRef, useState } from "react";
-import type { KeyboardEvent, SyntheticEvent } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
+import type { KeyboardEvent, Ref, SyntheticEvent } from "react";
+
+export interface ComposerHandle {
+  fill: (text: string) => void;
+}
 
 interface ComposerProps {
   used: number;
   onSend?: (text: string) => void;
   disabledReason?: string | undefined;
+  ref?: Ref<ComposerHandle>;
 }
 
-export function Composer({ used, onSend, disabledReason }: ComposerProps) {
+export function Composer({ used, onSend, disabledReason, ref: handle }: ComposerProps) {
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(handle, () => ({
+    fill(value) {
+      setText(value);
+      ref.current?.focus();
+    },
+  }));
   const limitReached = used >= MAX_MESSAGES_PER_SESSION;
   const blocked = limitReached || disabledReason !== undefined || !onSend;
   const canSend = !blocked && text.trim().length > 0;

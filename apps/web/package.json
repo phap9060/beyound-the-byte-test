@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@libsql/client": "0.18.0",
+    "@nexo/agent": "workspace:*",
     "@nexo/domain": "workspace:*",
     "@nexo/ticket-client": "workspace:*",
     "drizzle-orm": "0.45.4",

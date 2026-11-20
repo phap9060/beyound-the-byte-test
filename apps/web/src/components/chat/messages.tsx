@@ -1,6 +1,8 @@
-import type { AgentStep } from "@nexo/domain";
+import type { AgentStep, AgentTrace } from "@nexo/domain";
 import { Check, X } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { DecisionDetails } from "./decision-details";
 
 export function EmployeeMessage({ text }: { text: string }) {
   return (
@@ -12,16 +14,24 @@ export function EmployeeMessage({ text }: { text: string }) {
   );
 }
 
-export function AgentMessage({ steps, children }: { steps: AgentStep[]; children: ReactNode }) {
+export function AgentMessage({
+  steps,
+  trace = null,
+  children,
+}: {
+  steps: AgentStep[];
+  trace?: AgentTrace | null;
+  children: ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px]">
         <span className="font-semibold">Nexo Assist</span>
         {steps.length > 0 && (
           <ul aria-label="O que o assistente fez" className="contents">
-            {steps.map((s) => (
+            {steps.map((s, i) => (
               <li
-                key={s.label}
+                key={`${s.label}-${String(i)}`}
                 className={`flex items-center gap-[5px] ${s.status === "failed" ? "text-danger-text" : "text-ink-3"}`}
               >
                 {s.status === "done" ? (
@@ -36,6 +46,7 @@ export function AgentMessage({ steps, children }: { steps: AgentStep[]; children
         )}
       </div>
       {children}
+      {trace && <DecisionDetails trace={trace} steps={steps} />}
     </div>
   );
 }

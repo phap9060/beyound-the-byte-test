@@ -1,4 +1,5 @@
 import type { ConversationEvent } from "@/lib/chat-types";
+import { isAgentWorking } from "@/server/agent";
 import { getConversationRow, messagesAfter, toState } from "@/server/conversations";
 import { onConversation } from "@/server/events";
 import { getCurrentUser } from "@/server/session";
@@ -30,13 +31,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const buffered: ConversationEvent[] = [];
 
     const emit = (event: ConversationEvent) => {
-      if (event.type === "state") {
-        writer.send(event, { event: "state" });
-        return;
+      switch (event.type) {
+        case "state":
+        case "agent":
+        case "message_updated":
+          writer.send(event, { event: event.type });
+          return;
+        case "message":
+          if (event.message.id <= lastSent) return;
+          lastSent = event.message.id;
+          writer.send(event, { event: "message", id: event.message.id });
       }
-      if (event.message.id <= lastSent) return;
-      lastSent = event.message.id;
-      writer.send(event, { event: "message", id: event.message.id });
     };
 
     const stop = onConversation(id, (event) => {
@@ -49,6 +54,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         for (const message of await messagesAfter(id, lastSent)) emit({ type: "message", message });
         const current = await getConversationRow(id);
         if (current) emit({ type: "state", state: toState(current) });
+        emit({ type: "agent", working: isAgentWorking(id) });
       } finally {
         replaying = false;
         for (const event of buffered.splice(0)) emit(event);

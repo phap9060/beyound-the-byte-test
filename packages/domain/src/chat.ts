@@ -55,6 +55,17 @@ export const AgentDecisionSchema = z.object({
 });
 export type AgentDecision = z.infer<typeof AgentDecisionSchema>;
 
+// Decisão + custo de uma resposta do agent, guardados junto da mensagem.
+export const AgentTraceSchema = z.object({
+  decision: AgentDecisionSchema,
+  model: z.string(),
+  durationMs: z.number(),
+  modelCalls: z.number(),
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+});
+export type AgentTrace = z.infer<typeof AgentTraceSchema>;
+
 export const TicketViewSchema = z.object({
   id: TicketIdSchema,
   type: TicketTypeSchema,

@@ -8,6 +8,8 @@ const EnvSchema = z.object({
   TICKET_SERVICE_TOKEN: z.string().min(16).optional(),
   SESSION_SECRET: z.string().min(32).optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
+  AI_MODEL: z.string().min(1).optional(),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -31,4 +33,7 @@ export const env = {
   // Em desenvolvimento um segredo fixo evita configuração; em produção ele é exigido acima.
   sessionSecret: parsed.data.SESSION_SECRET ?? "dev-only-secret-do-not-use-in-production!!",
   isProduction: parsed.data.NODE_ENV === "production",
+  // Sem chave o app sobe mesmo assim; o chat avisa que o assistente não está configurado.
+  googleApiKey: parsed.data.GOOGLE_GENERATIVE_AI_API_KEY,
+  aiModel: parsed.data.AI_MODEL,
 };

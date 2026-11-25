@@ -1,9 +1,10 @@
 import { initials } from "@nexo/domain";
-import { LogOut, MessageCircle } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { logout } from "@/app/login/actions";
 import { LiveRefresh } from "@/components/console/live-refresh";
+import { ConsoleNav } from "@/components/console/nav";
 import { NexoMark } from "@/components/nexo-mark";
 import { listConsole } from "@/server/conversations";
 import { requireUser } from "@/server/session";
@@ -18,6 +19,9 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
       <header className="flex h-12 shrink-0 items-center gap-2.5 border-b border-rule px-4 md:hidden">
         <NexoMark className="h-4 w-[19px] text-primary" />
         <span className="flex-1 text-[15px] font-bold">Nexo Assist</span>
+        <nav aria-label="Console" className="flex items-center gap-1">
+          <ConsoleNav waiting={waiting} />
+        </nav>
         <span className="text-[12.5px] text-ink-3">{analyst.name}</span>
         <form action={logout}>
           <button
@@ -37,19 +41,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
         <span className="flex size-10 items-center justify-center pb-2">
           <NexoMark className="h-[19px] w-[22px] text-primary" />
         </span>
-        <span
-          title="Conversas"
-          className="relative flex size-10 items-center justify-center rounded-[12px] bg-paper text-ink"
-        >
-          <MessageCircle className="size-[19px]" aria-hidden />
-          <span className="sr-only">Conversas</span>
-          {waiting > 0 && (
-            <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-desk bg-cta px-1 text-[10px] font-bold text-white">
-              {waiting}
-              <span className="sr-only"> aguardando atendente</span>
-            </span>
-          )}
-        </span>
+        <ConsoleNav waiting={waiting} />
         <span className="flex-1" />
         <span
           title={`${analyst.name} · ${analyst.supportTeam ?? ""}`}

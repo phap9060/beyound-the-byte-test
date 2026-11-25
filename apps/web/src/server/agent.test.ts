@@ -165,3 +165,54 @@ describe("registro dos turnos do agent", () => {
     expect(runAgentTurn).not.toHaveBeenCalled();
   });
 });
+
+describe("lista de decisões", () => {
+  it("filtra e conta por baixa confiança, transferência e turnos sem resposta", async () => {
+    const { countTurns, listTurns } = await import("./agent-turns");
+    const before = await countTurns();
+    const base = { conversationId, employeeMessageId, createdAt: NOW };
+    await ctx.db.insert(ctx.agentTurns).values([
+      { ...base, outcome: "answered", confidence: 0.9 },
+      { ...base, outcome: "handed_off", confidence: 0.3 },
+      { ...base, outcome: "discarded", confidence: 0.8 },
+      { ...base, outcome: "model_error", error: "quota exceeded" },
+    ]);
+
+    const after = await countTurns();
+    expect({
+      todas: after.todas - before.todas,
+      baixa: after["baixa-confianca"] - before["baixa-confianca"],
+      transferidas: after.transferidas - before.transferidas,
+      semResposta: after["sem-resposta"] - before["sem-resposta"],
+    }).toEqual({ todas: 4, baixa: 1, transferidas: 1, semResposta: 2 });
+
+    const mine = async (filter: Parameters<typeof listTurns>[0]) =>
+      (await listTurns(filter))
+        .filter((t) => t.conversationId === conversationId)
+        .map((t) => t.outcome);
+    expect(await mine("todas")).toEqual(["model_error", "discarded", "handed_off", "answered"]);
+    expect(await mine("baixa-confianca")).toEqual(["handed_off"]);
+    expect(await mine("transferidas")).toEqual(["handed_off"]);
+    expect(await mine("sem-resposta")).toEqual(["model_error", "discarded"]);
+  });
+
+  it("mostra quem perguntou e não quebra com um registro fora do formato", async () => {
+    const { listTurns } = await import("./agent-turns");
+    await ctx.db.insert(ctx.agentTurns).values({
+      conversationId,
+      employeeMessageId,
+      outcome: "answered",
+      toolCalls: [{ tool: "" }],
+      trace: { quebrado: true },
+      createdAt: NOW,
+    });
+
+    const [turn] = await listTurns("todas");
+    expect(turn).toMatchObject({
+      employeeName: "Ana Souza",
+      message: "minha VPN caiu",
+      toolCalls: [],
+      trace: null,
+    });
+  });
+});

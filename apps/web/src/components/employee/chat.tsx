@@ -148,7 +148,7 @@ export function EmployeeChat(props: Props) {
         <section
           aria-label="Conversa"
           aria-live="polite"
-          className="flex flex-1 flex-col overflow-y-auto px-4 pt-7 pb-1 md:px-10"
+          className="relative flex flex-1 flex-col overflow-y-auto px-4 pt-7 pb-1 md:px-10"
         >
           <div className="mx-auto mt-auto flex w-full max-w-[808px] flex-col gap-5 pb-6">
             {messages.length === 0 && <Greeting firstName={firstName} />}

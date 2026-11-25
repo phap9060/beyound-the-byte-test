@@ -69,6 +69,15 @@ export async function runAgentTurn(input: AgentTurnInput): Promise<Result<AgentT
   const now = input.now ?? new Date();
   const recorder = createRecorder();
   const toolCalls: AgentToolCall[] = [];
+  const signal = input.signal ?? AbortSignal.timeout(TURN_TIMEOUT_MS);
+  const modelError = (message: string) =>
+    err<AgentError>({
+      kind: "model_error",
+      message,
+      steps: recorder.steps,
+      toolCalls,
+      durationMs: Date.now() - startedAt,
+    });
 
   const agent = new Agent({
     id: "nexo-assist",
@@ -91,23 +100,21 @@ export async function runAgentTurn(input: AgentTurnInput): Promise<Result<AgentT
     output = await agent.generate(messages, {
       maxSteps: MAX_STEPS,
       toolChoice: "required",
-      abortSignal: input.signal ?? AbortSignal.timeout(TURN_TIMEOUT_MS),
+      abortSignal: signal,
       modelSettings: { maxRetries: 2 },
       onStepFinish: (step) => {
         toolCalls.push(...toToolCalls(step));
       },
     });
   } catch (error) {
-    return err({
-      kind: "model_error",
-      message: error instanceof Error ? error.message : String(error),
-      steps: recorder.steps,
-      toolCalls,
-      durationMs: Date.now() - startedAt,
-    });
+    return modelError(error instanceof Error ? error.message : String(error));
   }
 
   const replyCall = output.toolCalls.findLast((c) => c.payload.toolName === REPLY_TOOL);
+  // O Mastra não lança quando o tempo acaba. Se já transferiu, a conversa segue para o analista.
+  if (!replyCall && signal.aborted && !recorder.handoff) {
+    return modelError("O modelo não respondeu a tempo.");
+  }
   const reply = replyCall ? parseReply(replyCall.payload.args, recorder) : fallbackReply();
 
   return ok({

@@ -384,6 +384,59 @@ describe("runAgentTurn", () => {
     expect(turn.toolCalls[0]?.status).toBe("failed");
   });
 
+  describe("quando o tempo acaba", () => {
+    const hanging = (...first: ReturnType<typeof call>[]) => {
+      const steps = [...first];
+      return new MockLanguageModelV4({
+        doGenerate: ({ abortSignal }) => {
+          const step = steps.shift();
+          if (step) return Promise.resolve(step);
+          return new Promise((_, reject) => {
+            abortSignal?.addEventListener("abort", () => {
+              reject(new Error("aborted"));
+            });
+          });
+        },
+      });
+    };
+    const turn = (model: MockLanguageModelV4) =>
+      runAgentTurn({
+        model,
+        client: createFakeClient(TICKETS).client,
+        employee: ANA,
+        history: [],
+        message: "oi",
+        now: NOW,
+        signal: AbortSignal.timeout(300),
+      });
+
+    it("devolve erro em vez de transferir por baixa confiança", async () => {
+      const result = await turn(hanging(call("consultar_meus_chamados", { situacao: "abertos" })));
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: "model_error", message: "O modelo não respondeu a tempo." },
+      });
+      if (result.ok) return;
+      expect(result.error.toolCalls.map((c) => c.tool)).toEqual(["consultar_meus_chamados"]);
+    });
+
+    it("mantém a transferência que já tinha sido feita", async () => {
+      const result = await turn(
+        hanging(
+          call("transferir_para_analista", {
+            motivo: "chamado_vencido",
+            resumo: "Notebook lento há 6 dias sem retorno.",
+            ticketId: "INC-20311",
+          }),
+        ),
+      );
+
+      if (!result.ok) throw new Error(result.error.message);
+      expect(result.value.handoff?.reasons).toContain("chamado_vencido");
+    });
+  });
+
   it("mantém o que já foi feito quando o provedor falha no meio do turno", async () => {
     let n = 0;
     const model = new MockLanguageModelV4({

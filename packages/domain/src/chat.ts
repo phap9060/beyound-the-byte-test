@@ -21,6 +21,14 @@ export const AgentStepSchema = z.object({
 });
 export type AgentStep = z.infer<typeof AgentStepSchema>;
 
+export const AgentToolCallSchema = z.object({
+  tool: z.string().min(1),
+  status: z.enum(["done", "failed"]),
+  args: z.string(),
+  result: z.string().optional(),
+});
+export type AgentToolCall = z.infer<typeof AgentToolCallSchema>;
+
 export const INTENTS = [
   "duvida",
   "consultar_chamado",

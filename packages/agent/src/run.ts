@@ -4,6 +4,7 @@ import { HANDOFF_REASON_LABEL, err, evaluateHandoff, ok } from "@nexo/domain";
 import type {
   AgentDecision,
   AgentStep,
+  AgentToolCall,
   HandoffReason,
   MessagePart,
   PriorityDecision,
@@ -17,6 +18,7 @@ import { createRecorder } from "./recorder.ts";
 import type { TurnRecorder } from "./recorder.ts";
 import { REPLY_TOOL, ReplySchema, replyTool } from "./reply.ts";
 import type { Reply } from "./reply.ts";
+import { toToolCalls } from "./tool-calls.ts";
 import { createTools } from "./tools.ts";
 import type { AgentTicketClient } from "./tools.ts";
 
@@ -43,6 +45,7 @@ export interface AgentTurn {
   text: string;
   parts: MessagePart[];
   steps: AgentStep[];
+  toolCalls: AgentToolCall[];
   decision: AgentDecision;
   handoff?: AgentHandoff;
   priority?: PriorityDecision;
@@ -53,6 +56,9 @@ export interface AgentTurn {
 export interface AgentError {
   kind: "model_error";
   message: string;
+  steps: AgentStep[];
+  toolCalls: AgentToolCall[];
+  durationMs: number;
 }
 
 const LOW_CONFIDENCE_NOTE =
@@ -62,6 +68,7 @@ export async function runAgentTurn(input: AgentTurnInput): Promise<Result<AgentT
   const startedAt = Date.now();
   const now = input.now ?? new Date();
   const recorder = createRecorder();
+  const toolCalls: AgentToolCall[] = [];
 
   const agent = new Agent({
     id: "nexo-assist",
@@ -86,11 +93,17 @@ export async function runAgentTurn(input: AgentTurnInput): Promise<Result<AgentT
       toolChoice: "required",
       abortSignal: input.signal ?? AbortSignal.timeout(TURN_TIMEOUT_MS),
       modelSettings: { maxRetries: 2 },
+      onStepFinish: (step) => {
+        toolCalls.push(...toToolCalls(step));
+      },
     });
   } catch (error) {
     return err({
       kind: "model_error",
       message: error instanceof Error ? error.message : String(error),
+      steps: recorder.steps,
+      toolCalls,
+      durationMs: Date.now() - startedAt,
     });
   }
 
@@ -99,6 +112,7 @@ export async function runAgentTurn(input: AgentTurnInput): Promise<Result<AgentT
 
   return ok({
     ...assemble(reply, recorder),
+    toolCalls,
     usage: {
       inputTokens: sum(output.steps.map((s) => s.usage.inputTokens)),
       outputTokens: sum(output.steps.map((s) => s.usage.outputTokens)),

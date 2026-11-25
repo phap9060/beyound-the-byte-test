@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { runAgentTurn } from "./run.ts";
 import { ANA, NOW, TICKETS, ago, createFakeClient, ticket } from "./testing/fixtures.ts";
+import { MAX_LOGGED_CHARS } from "./tool-calls.ts";
 
 const usage = {
   inputTokens: { total: 100, noCache: 100, cacheRead: 0, cacheWrite: 0 },
@@ -326,6 +327,84 @@ describe("runAgentTurn", () => {
     });
 
     expect(result).toMatchObject({ ok: false, error: { kind: "model_error" } });
+  });
+
+  it("registra as ferramentas pedidas, com argumentos e resultado, na ordem", async () => {
+    const { turn } = await run(
+      scripted(call("consultar_meus_chamados", { situacao: "abertos" }), reply()),
+    );
+
+    expect(turn.toolCalls.map((c) => [c.tool, c.status])).toEqual([
+      ["consultar_meus_chamados", "done"],
+      ["responder", "done"],
+    ]);
+    expect(turn.toolCalls[0]?.args).toBe('{"situacao":"abertos"}');
+    expect(turn.toolCalls[0]?.result).toContain("INC-20311");
+    expect(turn.toolCalls[1]?.result).toBeUndefined();
+  });
+
+  it("marca como falha o pedido fora do schema e o erro devolvido pela ferramenta", async () => {
+    const { turn } = await run(
+      scripted(
+        call("consultar_meus_chamados", { situacao: "qualquer" }),
+        call("ver_chamado", { ticketId: "INC-20335" }),
+        reply(),
+      ),
+    );
+
+    expect(turn.toolCalls.map((c) => c.status)).toEqual(["failed", "failed", "done"]);
+  });
+
+  it("limita o tamanho do que é registrado", async () => {
+    const { turn } = await run(
+      scripted(call("buscar_central_de_ajuda", { consulta: "x".repeat(5000) }), reply()),
+    );
+
+    expect(turn.toolCalls[0]?.args).toHaveLength(MAX_LOGGED_CHARS + 1);
+  });
+
+  it("anota o passo quando o rascunho não passa na validação", async () => {
+    const { turn } = await run(
+      scripted(
+        call("preparar_rascunho", {
+          tipo: "INC",
+          titulo: "Oi    ",
+          descricao: "O Outlook fecha sozinho ao abrir.",
+          categoria: "email",
+          afetados: "somente_eu",
+          impedeTrabalho: false,
+          compromissoHoje: false,
+        }),
+        reply(),
+      ),
+    );
+
+    expect(turn.parts).toEqual([]);
+    expect(turn.steps.at(-1)).toMatchObject({ label: "preparou o rascunho", status: "failed" });
+    expect(turn.toolCalls[0]?.status).toBe("failed");
+  });
+
+  it("mantém o que já foi feito quando o provedor falha no meio do turno", async () => {
+    let n = 0;
+    const model = new MockLanguageModelV4({
+      doGenerate: () =>
+        n++ === 0
+          ? Promise.resolve(call("consultar_meus_chamados", { situacao: "abertos" }))
+          : Promise.reject(new Error("quota exceeded")),
+    });
+    const { client } = createFakeClient(TICKETS);
+    const result = await runAgentTurn({
+      model,
+      client,
+      employee: ANA,
+      history: [],
+      message: "oi",
+      now: NOW,
+    });
+
+    if (result.ok) throw new Error("deveria falhar");
+    expect(result.error.toolCalls.map((c) => c.tool)).toEqual(["consultar_meus_chamados"]);
+    expect(result.error.steps.map((s) => s.label)).toEqual(["consultou seus chamados"]);
   });
 
   it("envia o histórico e as instruções com o nome do funcionário", async () => {

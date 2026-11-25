@@ -225,6 +225,7 @@ export function createTools(ctx: ToolContext) {
         affected: input.afetados,
       });
       if (!draft.success) {
+        recorder.step("preparou o rascunho", "failed", "dados fora do formato");
         return { erro: z.prettifyError(draft.error) };
       }
 

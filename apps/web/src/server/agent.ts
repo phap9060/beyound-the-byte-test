@@ -10,7 +10,7 @@ import type { ChatMessage, ConversationEvent } from "@/lib/chat-types";
 
 import { getConversation, publishAll, toChatMessage } from "./conversations";
 import { getDb } from "./db/client";
-import { conversations, messages } from "./db/schema";
+import { agentTurns, conversations, messages } from "./db/schema";
 import { env } from "./env";
 import { publish } from "./events";
 import { handOffInTx } from "./handoff";
@@ -96,6 +96,7 @@ async function respond(conversationId: string): Promise<void> {
       await addAgentNotice(
         conversationId,
         "O assistente não está configurado neste ambiente (falta GOOGLE_GENERATIVE_AI_API_KEY).",
+        { employeeMessageId: last.id, outcome: "not_configured" },
       );
       return;
     }
@@ -103,7 +104,10 @@ async function respond(conversationId: string): Promise<void> {
     const { conversation } = loaded;
     const limited = checkLimits(conversation.employeeId);
     if (limited) {
-      await addAgentNotice(conversationId, limited);
+      await addAgentNotice(conversationId, limited, {
+        employeeMessageId: last.id,
+        outcome: "rate_limited",
+      });
       return;
     }
 
@@ -120,10 +124,18 @@ async function respond(conversationId: string): Promise<void> {
       await addAgentNotice(
         conversationId,
         "Não consegui responder agora. Tente de novo em instantes.",
+        {
+          employeeMessageId: last.id,
+          outcome: "model_error",
+          error: result.error.message,
+          steps: result.error.steps,
+          toolCalls: result.error.toolCalls,
+          durationMs: result.error.durationMs,
+        },
       );
       return;
     }
-    await saveAgentReply(conversationId, result.value);
+    await saveAgentReply(conversationId, last.id, result.value);
   } finally {
     publish(conversationId, { type: "agent", working: false });
   }
@@ -140,10 +152,31 @@ function toTrace(turn: AgentTurn): AgentTrace {
   };
 }
 
+type NewTurn = typeof agentTurns.$inferInsert;
+
+function toTurnRow(
+  turn: AgentTurn,
+): Omit<
+  NewTurn,
+  "conversationId" | "employeeMessageId" | "replyMessageId" | "outcome" | "createdAt"
+> {
+  return {
+    intent: turn.decision.intent,
+    confidence: turn.decision.confidence,
+    handoffReasons: turn.handoff?.reasons,
+    priority: turn.priority,
+    toolCalls: turn.toolCalls,
+    steps: turn.steps,
+    trace: toTrace(turn),
+    durationMs: turn.durationMs,
+  };
+}
+
 type SaveError = { kind: "not_found" } | { kind: "paused" };
 
 export async function saveAgentReply(
   conversationId: string,
+  employeeMessageId: number,
   turn: AgentTurn,
   now = new Date(),
 ): Promise<Result<void, SaveError>> {
@@ -155,7 +188,12 @@ export async function saveAgentReply(
         where: eq(conversations.id, conversationId),
       });
       if (!current) return err({ kind: "not_found" });
-      if (!agentCanReply(current.status)) return err({ kind: "paused" });
+
+      const row = { ...toTurnRow(turn), conversationId, employeeMessageId, createdAt: now };
+      if (!agentCanReply(current.status)) {
+        await tx.insert(agentTurns).values({ ...row, outcome: "discarded" });
+        return err({ kind: "paused" });
+      }
 
       const [inserted] = await tx
         .insert(messages)
@@ -191,6 +229,11 @@ export async function saveAgentReply(
           .set({ agentConfidence: turn.decision.confidence, updatedAt: now, lastMessageAt: now })
           .where(eq(conversations.id, conversationId));
       }
+      await tx.insert(agentTurns).values({
+        ...row,
+        replyMessageId: inserted?.id,
+        outcome: turn.handoff ? "handed_off" : "answered",
+      });
       return ok(undefined);
     },
     { behavior: "immediate" },
@@ -199,11 +242,25 @@ export async function saveAgentReply(
   return result;
 }
 
-async function addAgentNotice(conversationId: string, text: string, now = new Date()) {
+async function addAgentNotice(
+  conversationId: string,
+  text: string,
+  turn: Omit<NewTurn, "conversationId" | "replyMessageId" | "createdAt">,
+  now = new Date(),
+) {
   const db = await getDb();
-  const [inserted] = await db
-    .insert(messages)
-    .values({ conversationId, author: "system", text, createdAt: now })
-    .returning();
+  const inserted = await db.transaction(
+    async (tx) => {
+      const [notice] = await tx
+        .insert(messages)
+        .values({ conversationId, author: "system", text, createdAt: now })
+        .returning();
+      await tx
+        .insert(agentTurns)
+        .values({ ...turn, conversationId, replyMessageId: notice?.id, createdAt: now });
+      return notice;
+    },
+    { behavior: "immediate" },
+  );
   if (inserted) publish(conversationId, { type: "message", message: toChatMessage(inserted) });
 }

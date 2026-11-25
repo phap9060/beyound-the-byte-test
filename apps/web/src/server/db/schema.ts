@@ -1,4 +1,10 @@
-import { CLOSED_BY, CONVERSATION_STATUSES, MESSAGE_AUTHORS } from "@nexo/domain";
+import {
+  AGENT_TURN_OUTCOMES,
+  CLOSED_BY,
+  CONVERSATION_STATUSES,
+  INTENTS,
+  MESSAGE_AUTHORS,
+} from "@nexo/domain";
 import type { AgentStep, HandoffReason } from "@nexo/domain";
 import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
@@ -56,4 +62,31 @@ export const messages = sqliteTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (t) => [index("messages_conversation_idx").on(t.conversationId)],
+);
+
+// Uma linha por turno do agent, inclusive os que falharam ou foram descartados e não viraram resposta.
+export const agentTurns = sqliteTable(
+  "agent_turns",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id),
+    employeeMessageId: integer("employee_message_id")
+      .notNull()
+      .references(() => messages.id),
+    replyMessageId: integer("reply_message_id").references(() => messages.id),
+    outcome: text("outcome", { enum: AGENT_TURN_OUTCOMES }).notNull(),
+    intent: text("intent", { enum: INTENTS }),
+    confidence: real("confidence"),
+    handoffReasons: text("handoff_reasons", { mode: "json" }).$type<HandoffReason[]>(),
+    priority: text("priority", { mode: "json" }).$type<unknown>(),
+    toolCalls: text("tool_calls", { mode: "json" }).$type<unknown[]>(),
+    steps: text("steps", { mode: "json" }).$type<AgentStep[]>(),
+    trace: text("trace", { mode: "json" }).$type<unknown>(),
+    error: text("error"),
+    durationMs: integer("duration_ms"),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [index("agent_turns_conversation_idx").on(t.conversationId)],
 );

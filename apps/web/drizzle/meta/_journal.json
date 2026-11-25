@@ -15,6 +15,13 @@
       "when": 1795206540505,
       "tag": "0001_message_trace",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795624617709,
+      "tag": "0002_agent_turns",
+      "breakpoints": true
     }
   ]
 }

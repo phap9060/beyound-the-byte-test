@@ -74,6 +74,16 @@ export const AgentTraceSchema = z.object({
 });
 export type AgentTrace = z.infer<typeof AgentTraceSchema>;
 
+export const AGENT_TURN_OUTCOMES = [
+  "answered",
+  "handed_off",
+  "discarded",
+  "model_error",
+  "rate_limited",
+  "not_configured",
+] as const;
+export type AgentTurnOutcome = (typeof AGENT_TURN_OUTCOMES)[number];
+
 export const TicketViewSchema = z.object({
   id: TicketIdSchema,
   type: TicketTypeSchema,

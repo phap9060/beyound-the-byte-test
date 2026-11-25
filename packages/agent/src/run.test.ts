@@ -10,14 +10,15 @@ const usage = {
   outputTokens: { total: 20, text: 20, reasoning: 0 },
 };
 
-function call(toolName: string, input: unknown) {
+function call(toolName: string, input: Record<string, unknown>) {
+  const args = toolName === "responder" ? input : { porque: "Preciso deste dado.", ...input };
   return {
     content: [
       {
         type: "tool-call" as const,
         toolCallId: crypto.randomUUID(),
         toolName,
-        input: JSON.stringify(input),
+        input: JSON.stringify(args),
       },
     ],
     finishReason: { unified: "tool-calls" as const, raw: undefined },
@@ -341,6 +342,33 @@ describe("runAgentTurn", () => {
     expect(turn.toolCalls[0]?.args).toBe('{"situacao":"abertos"}');
     expect(turn.toolCalls[0]?.result).toContain("INC-20311");
     expect(turn.toolCalls[1]?.result).toBeUndefined();
+  });
+
+  it("guarda o porquê de cada ferramenta separado dos argumentos", async () => {
+    const { turn } = await run(
+      scripted(
+        call("consultar_meus_chamados", {
+          porque: "Ela perguntou do chamado sem dizer o número.",
+          situacao: "abertos",
+        }),
+        reply(),
+      ),
+    );
+
+    expect(turn.toolCalls[0]).toMatchObject({
+      why: "Ela perguntou do chamado sem dizer o número.",
+      args: '{"situacao":"abertos"}',
+    });
+    expect(turn.toolCalls[1]?.why).toBeUndefined();
+  });
+
+  it("recusa a ferramenta usada sem dizer o porquê", async () => {
+    const { turn, calls } = await run(
+      scripted(call("consultar_meus_chamados", { porque: "", situacao: "abertos" }), reply()),
+    );
+
+    expect(turn.toolCalls[0]?.status).toBe("failed");
+    expect(calls).toEqual([]);
   });
 
   it("marca como falha o pedido fora do schema e o erro devolvido pela ferramenta", async () => {

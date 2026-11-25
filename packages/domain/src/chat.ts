@@ -24,6 +24,7 @@ export type AgentStep = z.infer<typeof AgentStepSchema>;
 export const AgentToolCallSchema = z.object({
   tool: z.string().min(1),
   status: z.enum(["done", "failed"]),
+  why: z.string().optional(),
   args: z.string(),
   result: z.string().optional(),
 });

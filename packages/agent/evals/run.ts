@@ -1,5 +1,3 @@
-// Roda os cenários contra o modelo real, com o serviço de chamados em memória.
-// Uso: pnpm --filter @nexo/agent eval [--only id1,id2] [--repeat 3]
 import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
@@ -15,7 +13,6 @@ const { values } = parseArgs({
   options: {
     only: { type: "string" },
     repeat: { type: "string", default: "1" },
-    // Pausa entre turnos para caber no limite de requisições por minuto do plano gratuito.
     delay: { type: "string", default: "4000" },
   },
 });

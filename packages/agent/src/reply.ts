@@ -23,8 +23,6 @@ export type Reply = z.infer<typeof ReplySchema>;
 
 export const REPLY_TOOL = "responder";
 
-// Sem execute: quando o modelo chama esta ferramenta, o loop do Mastra para e os argumentos
-// viram a resposta estruturada do turno.
 export const replyTool = createTool({
   id: REPLY_TOOL,
   description: "Envia a resposta ao funcionário e encerra o turno. Chame sempre, por último.",

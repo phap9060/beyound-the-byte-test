@@ -60,7 +60,6 @@ export const kbArticles = sqliteTable("kb_articles", {
   title: text("title").notNull(),
   body: text("body").notNull(),
   category: text("category", { enum: CATEGORIES }).notNull(),
-  // separadas por vírgula
   keywords: text("keywords").notNull(),
 });
 

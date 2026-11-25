@@ -18,7 +18,6 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// "O que o agent entendeu, que ação tomou, com que grau de segurança e por quê" (requisito 7).
 export function DecisionDetails({ trace, steps }: { trace: AgentTrace; steps: AgentStep[] }) {
   const { decision } = trace;
   const percent = Math.round(decision.confidence * 100);

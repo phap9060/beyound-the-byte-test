@@ -36,8 +36,6 @@ export async function sendEmployeeMessage(text: string): Promise<SendResult> {
     };
   }
 
-  // A resposta do agent chega pelo SSE: a mensagem do funcionário aparece na hora,
-  // sem esperar o modelo.
   const { conversationId } = result.value;
   after(() => scheduleAgentTurn(conversationId));
   return { ok: true, message: result.value.message };

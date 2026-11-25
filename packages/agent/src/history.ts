@@ -42,7 +42,6 @@ function describePart(part: MessagePart): string {
   }
 }
 
-// O que o agent já consultou vai junto, para ele não repetir as mesmas chamadas a cada turno.
 function describeSteps(steps: AgentStep[]): string[] {
   if (steps.length === 0) return [];
   const done = steps.map(

@@ -19,7 +19,6 @@ async function open(url: string): Promise<Database> {
   const client = createClient({ url });
   const db = drizzle(client, { schema });
   await client.execute("PRAGMA foreign_keys = ON");
-  // import.meta.url aponta para o bundle do Next, então as migrações são achadas pelo cwd.
   await migrate(db, { migrationsFolder: join(process.cwd(), "drizzle") });
   await seedConversationsIfEmpty(db);
   return db;

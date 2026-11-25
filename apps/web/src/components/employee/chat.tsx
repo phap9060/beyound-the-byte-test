@@ -44,7 +44,6 @@ function upsert(list: ChatMessage[], message: ChatMessage): ChatMessage[] {
 type Choice = "confirm" | "cancel";
 
 interface ProposalHandlers {
-  // Só o rascunho pendente mais recente aceita ação; os anteriores ficaram para trás na conversa.
   activeDraft: string | undefined;
   busyDraft: string | undefined;
   onResolve: (messageId: number, draftId: string, choice: Choice) => void;

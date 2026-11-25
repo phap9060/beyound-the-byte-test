@@ -87,7 +87,7 @@ async function respond(conversationId: string): Promise<void> {
 
   const history = loaded.messages.map(toChatMessage);
   const last = history.at(-1);
-  // Se a última mensagem já não é do funcionário, um turno anterior respondeu a todas de uma vez.
+
   if (last?.author !== "employee") return;
 
   publish(conversationId, { type: "agent", working: true });
@@ -155,7 +155,6 @@ export async function saveAgentReply(
         where: eq(conversations.id, conversationId),
       });
       if (!current) return err({ kind: "not_found" });
-      // Um analista assumiu enquanto o modelo pensava: a resposta é descartada.
       if (!agentCanReply(current.status)) return err({ kind: "paused" });
 
       const [inserted] = await tx

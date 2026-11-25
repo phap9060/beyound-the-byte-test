@@ -88,7 +88,6 @@ export async function runAgentTurn(input: AgentTurnInput): Promise<Result<AgentT
       modelSettings: { maxRetries: 2 },
     });
   } catch (error) {
-    // Falha do provedor (cota, rede, timeout): não é decisão do agent, a interface oferece tentar de novo.
     return err({
       kind: "model_error",
       message: error instanceof Error ? error.message : String(error),

@@ -12,8 +12,6 @@ const MIN = 60 * 1000;
 const done = (...labels: string[]): AgentStep[] =>
   labels.map((label) => ({ label, status: "done" }));
 
-// Conversas de outros funcionários para o console não começar vazio. A Ana fica de fora de propósito:
-// é com ela que se testa o chat, e uma conversa transferida deixaria o agent dela pausado.
 export function buildConversationSeed(now: Date) {
   const at = (minutesAgo: number) => new Date(now.getTime() - minutesAgo * MIN);
   const convs: NewConversation[] = [];

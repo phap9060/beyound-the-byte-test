@@ -31,7 +31,6 @@ function tokenize(text: string): string[] {
   );
 }
 
-// Busca por palavras com pesos. Com 5 a 10 artigos, não compensa um índice de texto completo.
 export async function searchKb(
   db: Database,
   query: string,

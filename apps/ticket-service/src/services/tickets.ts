@@ -45,7 +45,6 @@ function statusesFor(filter: StatusFilter): TicketStatus[] {
   }
 }
 
-// Chamado de outra pessoa responde igual a um inexistente: não revela que ele existe.
 async function findOwnedRow(
   db: Db,
   employeeId: string,
@@ -166,7 +165,6 @@ export async function addUpdate(
 
     await tx.insert(ticketUpdates).values({ ticketId, at: now, ...update });
 
-    // Só resposta do suporte reinicia o prazo (Anexo A).
     if (update.author === "analista") {
       await tx
         .update(tickets)

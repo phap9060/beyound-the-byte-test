@@ -95,7 +95,6 @@ const STATUS_ORDER: Record<ConversationStatus, number> = {
   closed: 3,
 };
 
-// Volume de protótipo: carregar tudo e filtrar em memória é simples e suficiente.
 export async function listConsole(analystId: string, filter: ConsoleFilter, query: string) {
   const db = await getDb();
   const rows = await db.query.conversations.findMany({

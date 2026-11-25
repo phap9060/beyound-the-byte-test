@@ -116,9 +116,7 @@
       "indexes": {
         "agent_turns_conversation_idx": {
           "name": "agent_turns_conversation_idx",
-          "columns": [
-            "conversation_id"
-          ],
+          "columns": ["conversation_id"],
           "isUnique": false
         }
       },
@@ -127,12 +125,8 @@
           "name": "agent_turns_conversation_id_conversations_id_fk",
           "tableFrom": "agent_turns",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -140,12 +134,8 @@
           "name": "agent_turns_employee_message_id_messages_id_fk",
           "tableFrom": "agent_turns",
           "tableTo": "messages",
-          "columnsFrom": [
-            "employee_message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_message_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -153,12 +143,8 @@
           "name": "agent_turns_reply_message_id_messages_id_fk",
           "tableFrom": "agent_turns",
           "tableTo": "messages",
-          "columnsFrom": [
-            "reply_message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reply_message_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -321,16 +307,12 @@
       "indexes": {
         "conversations_employee_idx": {
           "name": "conversations_employee_idx",
-          "columns": [
-            "employee_id"
-          ],
+          "columns": ["employee_id"],
           "isUnique": false
         },
         "conversations_status_idx": {
           "name": "conversations_status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -430,9 +412,7 @@
       "indexes": {
         "messages_conversation_idx": {
           "name": "messages_conversation_idx",
-          "columns": [
-            "conversation_id"
-          ],
+          "columns": ["conversation_id"],
           "isUnique": false
         }
       },
@@ -441,12 +421,8 @@
           "name": "messages_conversation_id_conversations_id_fk",
           "tableFrom": "messages",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

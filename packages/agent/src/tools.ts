@@ -36,6 +36,11 @@ export interface ToolContext {
   recorder: TurnRecorder;
 }
 
+const porque = z
+  .string()
+  .min(1)
+  .describe("Em uma frase curta, por que você está usando esta ferramenta agora");
+
 const REOPEN_HINT = "Resolvido há mais de 7 dias: não pode ser reaberto, abra um novo chamado.";
 
 function describeError(error: ClientError): string {
@@ -86,7 +91,7 @@ export function createTools(ctx: ToolContext) {
     id: "consultar_meus_chamados",
     description:
       "Lista os chamados do funcionário com status e prazo. Use para consultas, para achar um chamado sem o número e antes de abrir um chamado novo.",
-    inputSchema: z.object({ situacao: z.enum(["abertos", "encerrados", "todos"]) }),
+    inputSchema: z.object({ porque, situacao: z.enum(["abertos", "encerrados", "todos"]) }),
     execute: async ({ situacao }) => {
       const filter = situacao === "abertos" ? "open" : situacao === "encerrados" ? "closed" : "all";
       const result = await client.listTickets(employeeId, filter);
@@ -109,7 +114,7 @@ export function createTools(ctx: ToolContext) {
   const verChamado = createTool({
     id: "ver_chamado",
     description: "Mostra um chamado do funcionário com as últimas atualizações.",
-    inputSchema: z.object({ ticketId: TicketIdSchema }),
+    inputSchema: z.object({ porque, ticketId: TicketIdSchema }),
     execute: async ({ ticketId }) => {
       const result = await client.getTicket(employeeId, ticketId);
       if (!result.ok) {
@@ -138,7 +143,10 @@ export function createTools(ctx: ToolContext) {
     id: "buscar_central_de_ajuda",
     description:
       "Busca artigos da central de ajuda. Use antes de abrir chamado para dúvidas e problemas comuns.",
-    inputSchema: z.object({ consulta: z.string().min(2).describe("Palavras-chave do problema") }),
+    inputSchema: z.object({
+      porque,
+      consulta: z.string().min(2).describe("Palavras-chave do problema"),
+    }),
     execute: async ({ consulta }) => {
       const result = await client.searchKb(consulta, 3);
       if (!result.ok) {
@@ -160,6 +168,7 @@ export function createTools(ctx: ToolContext) {
     description:
       "Monta o rascunho de um chamado novo para o funcionário confirmar. Não cria o chamado: ele só é criado quando o funcionário confirmar no card. A prioridade é calculada pelas regras do service desk a partir dos fatos informados.",
     inputSchema: z.object({
+      porque,
       tipo: TicketTypeSchema.describe(
         "INC quando algo parou ou não funciona; REQ para pedido de acesso, equipamento ou software",
       ),
@@ -272,6 +281,7 @@ export function createTools(ctx: ToolContext) {
     description:
       "Prepara uma informação nova para ser adicionada a um chamado aberto do funcionário. Só é enviada quando ele confirmar.",
     inputSchema: z.object({
+      porque,
       ticketId: TicketIdSchema,
       mensagem: z.string().min(5).max(2000).describe("O complemento, escrito para o analista"),
     }),
@@ -310,6 +320,7 @@ export function createTools(ctx: ToolContext) {
     description:
       "Prepara a reabertura de um chamado resolvido há até 7 dias, quando o problema voltou. Só é feita quando o funcionário confirmar.",
     inputSchema: z.object({
+      porque,
       ticketId: TicketIdSchema,
       motivo: z.string().min(5).max(2000).describe("O que voltou a acontecer"),
     }),
@@ -350,6 +361,7 @@ export function createTools(ctx: ToolContext) {
     description:
       "Passa a conversa para um analista humano. Depois disso você fica pausado até o analista devolver a conversa.",
     inputSchema: z.object({
+      porque,
       motivo: z.enum([
         "pedido_do_funcionario",
         "caso_critico",

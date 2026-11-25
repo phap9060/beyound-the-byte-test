@@ -190,6 +190,7 @@ function ToolCall({ call, position }: { call: AgentToolCall; position: number })
           {position}. <code>{call.tool}</code>
         </span>
       </p>
+      {call.why && <p className="pl-[22px] text-ink-2">{call.why}</p>}
       <Payload label="Pediu" json={call.args} />
       {call.result !== undefined && <Payload label="Recebeu" json={call.result} />}
     </div>
